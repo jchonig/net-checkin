@@ -410,6 +410,8 @@ document.addEventListener("DOMContentLoaded", function() {
     row.appendChild(trafficCell);
     row.appendChild(createActionButtons(row,data.callsign));
     tbody.appendChild(row);
+
+    saveData();
   }
 
   function loadData(){
@@ -551,20 +553,40 @@ document.addEventListener("DOMContentLoaded", function() {
     showLookupResult();
   });
 
-  addBtn.addEventListener("click", async ()=>{
+  // Lookup Result click handler
+  lookupResultEl.addEventListener("click", (e) => {
     const val = callInput.value.trim().toUpperCase();
-    if(!val) return;
+    if (!val) return;
+
     let data = xmlCache[val];
-    if(!data && sessionKey){
-      try{ data = await qrzLookupCall(val); xmlCache[val]=data; }catch(err){ alert("Lookup failed"); return; }
-    }
+    const trafficState = e.shiftKey ? 1 : 0; // Shift+click = traffic
     addRowToTable({
       callsign: val,
       name: data?.name || "—",
       location: data?.location || "—",
       imgSrc: data?.imgSrc || ""
-    });
-    callInput.value="";
+    }, trafficState);
+
+    callInput.value = "";
+    hideLookupResult();
+    setDownloadTooltip();
+  });
+
+  // Add Button shift handling
+  addBtn.addEventListener("click", (e) => {
+    const val = callInput.value.trim().toUpperCase();
+    if (!val) return;
+
+    let data = xmlCache[val];
+    const trafficState = e.shiftKey ? 1 : 0;
+    addRowToTable({
+      callsign: val,
+      name: data?.name || "—",
+      location: data?.location || "—",
+      imgSrc: data?.imgSrc || ""
+    }, trafficState);
+
+    callInput.value = "";
     hideLookupResult();
     setDownloadTooltip();
   });
@@ -614,6 +636,32 @@ document.addEventListener("DOMContentLoaded", function() {
   loadSession();
   setDownloadTooltip();
 });
+
+document.getElementById("resetButton").addEventListener("click", () => {
+  if (!confirm("Are you sure you want to clear all data?")) return;
+
+  // Clear localStorage
+  localStorage.removeItem("netCheckData");
+
+  // Clear table body
+  tbody.innerHTML = "";
+
+  // Clear net name
+  netNameInput.value = "";
+
+  // Reset net date/time to next full hour
+  setDefaultNetTime();
+
+  // Clear frequency input
+  freqInput.value = "";
+
+  // Reset tooltip
+  setDownloadTooltip();
+
+  // Optionally, show a status message
+  showStatus("All data cleared", "info");
+});
+
 </script>
 
 <footer class="bg-light text-center text-muted py-2 fixed-bottom border-top">
