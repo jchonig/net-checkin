@@ -72,11 +72,11 @@ th { cursor: pointer; }
         <p><strong>Input Keys:</strong></p>
         <ul>
           <li><strong>Tab:</strong> Performs a lookup of the callsign without adding it to the list.</li>
-          <li><strong>Enter:</strong> Adds the currently displayed callsign to the check-in list with traffic set to <i class="bi bi-circle text-secondary"></i> (<code>-</code>).</li>
-          <li><strong>Shift + Enter:</strong> Adds the callsign with traffic set to <i class="bi bi-exclamation-triangle text-warning"></i> (<code>*</code>).</li>
+          <li><strong>Enter:</strong> Adds the currently displayed callsign to the check-in list with traffic set to <i class="bi bi-circle text-secondary"></i>.</li>
+          <li><strong>Shift + Enter:</strong> Adds the callsign with traffic set to <i class="bi bi-exclamation-triangle text-warning"></i>.</li>
         </ul>
-        <p><strong>Traffic Column:</strong> Tri-state values: <i class="bi bi-circle text-secondary"></i> (<code>-</code> = no traffic), <i class="bi bi-exclamation-triangle text-warning"></i> (<code>*</code> = traffic), <i class="bi bi-check-circle text-success"></i> (<code>✔</code> = traffic covered). Click the box to rotate the state.</p>
-        <p><strong>GitHub:</strong> To file issues or contribute, visit <a href="https://github.com/jchonig/n2vlv" target="_blank">https://github.com/your-repo/net-checkins</a></p>
+        <p><strong>Traffic Column:</strong> Tri-state values: <i class="bi bi-circle text-secondary"></i> (no traffic), <i class="bi bi-exclamation-triangle text-warning"></i> (traffic), <i class="bi bi-check-circle text-success"></i> (traffic covered). Click the box to rotate the state.</p>
+        <p><strong>GitHub:</strong> To file issues or contribute, visit <a href="https://github.com/jchonig/n2vlv" target="_blank">The GitHub Repo</a></p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -445,34 +445,6 @@ document.addEventListener("DOMContentLoaded", function() {
   setDownloadTooltip();
 });
 </script>
-
-<!-- Help Modal -->
-
-<div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="helpModalLabel">Help / Information</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p><strong>QRZ Login:</strong> Optional. You only need an XML subscription to look up callsigns. Passwords are <em>not</em> stored, only the session key.</p>
-        <p><strong>Local Data:</strong> All check-in data is stored locally in your browser (localStorage). Nothing is shared online.</p>
-        <p><strong>Input Keys:</strong></p>
-        <ul>
-          <li><strong>Tab:</strong> Performs a lookup of the callsign without adding it to the list.</li>
-          <li><strong>Enter:</strong> Adds the currently displayed callsign to the check-in list with traffic set to <code>-</code> (no traffic).</li>
-          <li><strong>Shift + Enter:</strong> Adds the callsign to the list with traffic set to <i class="bi bi-exclamation-triangle text-warning"></i> (traffic pending).</li>
-        </ul>
-        <p><strong>Traffic Column:</strong> Tri-state values: <i class="bi bi-circle text-secondary"></i> (no traffic), <i class="bi bi-exclamation-triangle text-warning"></i> (traffic pending), <i class="bi bi-check-circle text-success"></i> (traffic covered). Click the box to rotate the state.</p>
-        <p><strong>GitHub:</strong> To file issues or contribute, visit <a href="https://github.com/jchonig/n2vlv" target="_blank">GitHub</a></p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <footer class="bg-light text-center text-muted py-2 fixed-bottom border-top">
 <small>Copyright &copy; 2025, <a href="https://n2vlv.net" target=_blank>Jeffrey Honig / N2VLV</a> &nbsp; <a href="mailto:n2vlv@honig.net">n2vlv@honig.net</a></small>
