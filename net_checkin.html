@@ -1,4 +1,4 @@
-M<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -13,6 +13,11 @@ M<!DOCTYPE html>
 th { cursor: pointer; }
 #infoBanner { font-size: 0.9rem; margin-top: 0.5rem; }
 .traffic-cell { cursor: pointer; }
+#lookupResult.clickable:hover {
+  background-color: #ffe9b3 !important;
+  border-color: #e6b800;
+  box-shadow: 0 0 5px rgba(230, 184, 0, 0.6);
+}
 </style>
 </head>
 <body class="bg-light">
@@ -92,11 +97,17 @@ th { cursor: pointer; }
       <div class="input-group">
         <input id="callsignInput" type="text" class="form-control" placeholder="e.g., K1ABC">
         <button id="lookupButton" class="btn btn-primary">Lookup</button>
+        <button id="addButton" class="btn btn-primary">Add</button>
       </div>
       <div id="status" class="form-text mt-2"></div>
-      <div id="lookupResult" class="pending-box" style="display:none;"></div>
+      <!-- Lookup Result Box -->
+      <div id="lookupResult"
+           class="p-2 mt-2 bg-warning-subtle border rounded d-none clickable"
+           title="Click to add (Shift+Click = add with traffic)"
+           style="cursor: pointer;">
+      </div>
       <div id="infoBanner" class="text-muted">
-        Tip: <strong>Tab</strong> performs a lookup without adding to the list. <strong>Enter</strong> adds the currently displayed callsign. Shift+Enter marks traffic.
+        Tip: <strong>Tab</strong> performs a lookup without adding to the list. <strong>Enter</strong> adds the currently displayed callsign. <strong>Shift+Enter</strong> marks traffic.
       </div>
     </div>
   </div>
@@ -140,6 +151,7 @@ document.addEventListener("DOMContentLoaded", function() {
   const statusEl = document.getElementById("status");
   const lookupResultEl = document.getElementById("lookupResult");
   const callInput = document.getElementById("callsignInput");
+  const addBtn = document.getElementById("addButton");
   const lookupBtn = document.getElementById("lookupButton");
   const freqInput = document.getElementById("frequencyInput");
   const tbody = document.querySelector("#callTable tbody");
@@ -147,6 +159,14 @@ document.addEventListener("DOMContentLoaded", function() {
   const downloadWrapper = document.getElementById("downloadWrapper");
   const netNameInput = document.getElementById("netName");
   const loginDropdown = document.getElementById("loginDropdown");
+
+  // --- New helper functions for consistent lookup result visibility ---
+  function showLookupResult() {
+    lookupResultEl.classList.remove("d-none");
+  }
+  function hideLookupResult() {
+    lookupResultEl.classList.add("d-none");
+  }
 
   // Initialize tooltip
   let tooltip = new bootstrap.Tooltip(downloadWrapper);
@@ -329,7 +349,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const callsign=callInput.value.trim().toUpperCase();
     callInput.value=callsign;
     const freq=freqInput.value.trim();
-    if(!callsign){ lookupResultEl.style.display="none"; return; }
+    if(!callsign){ hideLookupResult(); return; }
     if(freq && !isValidFrequency(freq)){ showStatus("Invalid frequency! Must be a valid ham band.","error"); return; }
     showStatus(`Looking up ${callsign}...`,"info");
     if(sessionKey){
@@ -340,12 +360,102 @@ document.addEventListener("DOMContentLoaded", function() {
       tempLookupData={callsign,name:"—",location:"—"};
     }
     tempLookupData.freq=freq;
-    lookupResultEl.style.display="block";
+    showLookupResult();
     lookupResultEl.textContent=`${tempLookupData.callsign} - ${tempLookupData.name}, ${tempLookupData.location}${freq?` @ ${freq} MHz`:''}`;
     showStatus("", "info");
   }
 
   lookupBtn.addEventListener("click", doLookup);
+
+  addBtn.addEventListener("click", async (e) => {
+    await doLookup();
+    if (tempLookupData) {
+      const callsignUpper = tempLookupData.callsign.toUpperCase();
+      const duplicate = Array.from(tbody.children).some(
+	r => r.cells[0].textContent.toUpperCase() === callsignUpper
+      );
+      if (duplicate) {
+	showStatus(`Duplicate call sign: ${callsignUpper}`, "error");
+	return;
+      }
+
+      const row = document.createElement("tr");
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString("en-US",{hour12:false});
+
+      row.innerHTML = `<td>${tempLookupData.callsign}</td><td>${tempLookupData.name}</td><td>${tempLookupData.location}</td><td>${timeStr}</td>`;
+      const trafficCell = createTrafficCell(e.shiftKey ? 1 : 0);
+      row.appendChild(trafficCell);
+
+      const delTd = document.createElement("td");
+      const delBtn = document.createElement("button");
+      delBtn.className = "btn btn-sm btn-danger deleteBtn";
+      delBtn.textContent = "Delete";
+      delBtn.addEventListener("click", () => {
+	row.remove();
+	saveData();
+	setDownloadTooltip();
+      });
+      delTd.appendChild(delBtn);
+      row.appendChild(delTd);
+
+      tbody.appendChild(row);
+      callInput.value = "";
+      hideLookupResult();
+      tempLookupData = null;
+      showStatus("", "info");
+      saveData();
+      setDownloadTooltip();
+    }
+  });
+
+  // Click or Shift+Click on lookup result to add
+  lookupResultEl.addEventListener("click", (e) => {
+    if (!tempLookupData) return;
+
+    const callsignUpper = tempLookupData.callsign.toUpperCase();
+    const duplicate = Array.from(tbody.children).some(
+      r => r.cells[0].textContent.toUpperCase() === callsignUpper
+    );
+    if (duplicate) {
+      showStatus(`Duplicate call sign: ${callsignUpper}`, "error");
+      return;
+    }
+
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString("en-US",{hour12:false});
+
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${tempLookupData.callsign}</td>
+      <td>${tempLookupData.name}</td>
+      <td>${tempLookupData.location}</td>
+      <td>${timeStr}</td>
+    `;
+
+    const trafficCell = createTrafficCell(e.shiftKey ? 1 : 0);
+    row.appendChild(trafficCell);
+
+    const delTd = document.createElement("td");
+    const delBtn = document.createElement("button");
+    delBtn.className = "btn btn-sm btn-danger deleteBtn";
+    delBtn.textContent = "Delete";
+    delBtn.addEventListener("click", () => {
+      row.remove();
+      saveData();
+      setDownloadTooltip();
+    });
+    delTd.appendChild(delBtn);
+    row.appendChild(delTd);
+
+    tbody.appendChild(row);
+    callInput.value = "";
+    hideLookupResult();
+    tempLookupData = null;
+    showStatus("", "info");
+    saveData();
+    setDownloadTooltip();
+  });
 
   callInput.addEventListener("input", ()=>{ callInput.value=callInput.value.toUpperCase(); });
   callInput.addEventListener("keydown", e=>{
@@ -356,7 +466,6 @@ document.addEventListener("DOMContentLoaded", function() {
       if(e.key==="Enter" && callInput.value.trim()){
 	await doLookup();
 	if(tempLookupData){
-	  // Check for duplicate
 	  const callsignUpper = tempLookupData.callsign.toUpperCase();
 	  const duplicate = Array.from(tbody.children).some(r => r.cells[0].textContent.toUpperCase() === callsignUpper);
 	  if(duplicate){
@@ -366,10 +475,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
 	  const row=document.createElement("tr");
 	  const now=new Date();
-	  const timeStr=now.getHours().toString().padStart(2,"0")+":"+now.getMinutes().toString().padStart(2,"0")+":"+now.getSeconds().toString().padStart(2,"0");
+	  const timeStr=now.toLocaleTimeString("en-US",{hour12:false});
 
 	  row.innerHTML=`<td>${tempLookupData.callsign}</td><td>${tempLookupData.name}</td><td>${tempLookupData.location}</td><td>${timeStr}</td>`;
-	  const trafficCell = createTrafficCell(e.shiftKey ? 1 : 0); // Shift+Enter = Pending
+	  const trafficCell = createTrafficCell(e.shiftKey ? 1 : 0);
 	  row.appendChild(trafficCell);
 
 	  const delTd = document.createElement("td");
@@ -381,16 +490,19 @@ document.addEventListener("DOMContentLoaded", function() {
 	  row.appendChild(delTd);
 
 	  tbody.appendChild(row);
-	  callInput.value=freqInput.value=""; lookupResultEl.style.display="none"; tempLookupData=null;
+	  callInput.value=freqInput.value="";
+	  hideLookupResult();
+	  tempLookupData=null;
 	  showStatus("", "info");
-	  saveData(); setDownloadTooltip();
+	  saveData();
+	  setDownloadTooltip();
 	}
       }
   });
 
   document.getElementById("resetButton").addEventListener("click", ()=>{
     tbody.innerHTML="";
-    lookupResultEl.style.display="none";
+    hideLookupResult();
     callInput.value=freqInput.value=""; netNameInput.value="";
     setDefaultNetTime();
     saveData();
