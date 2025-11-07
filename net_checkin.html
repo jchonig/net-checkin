@@ -109,7 +109,6 @@ document.addEventListener("DOMContentLoaded", function() {
   const netNameInput = document.getElementById("netName");
   const loginDropdown = document.getElementById("loginDropdown");
 
-  // Initialize tooltip
   let tooltip = new bootstrap.Tooltip(downloadWrapper);
 
   function showStatus(msg,type="error"){
@@ -130,11 +129,8 @@ document.addEventListener("DOMContentLoaded", function() {
     if(!netNameInput.value.trim()) missing.push("Net Name");
     if(!dtInput.value.trim()) missing.push("Net Date/Time");
     if(tbody.children.length===0) missing.push("At least one check-in");
-
     const tooltipText = missing.length ? "Fill in: " + missing.join(", ") : "Download CSV";
     downloadBtn.disabled = missing.length > 0;
-
-    // Update tooltip content
     tooltip.dispose();
     downloadWrapper.setAttribute("title", tooltipText);
     tooltip = new bootstrap.Tooltip(downloadWrapper);
@@ -191,7 +187,6 @@ document.addEventListener("DOMContentLoaded", function() {
           sessionUser = sess.sessionUser;
       }
       updateLoginDisplay();
-      // Always keep inputs enabled
       callInput.disabled = lookupBtn.disabled = freqInput.disabled = false;
   }
 
@@ -215,6 +210,11 @@ document.addEventListener("DOMContentLoaded", function() {
       return {callsign, name: (fname+" "+lname).trim()||"—", location: (addr2+", "+country).trim()||"—"};
   }
 
+  function isDuplicateCallsign(callsign){
+    callsign = callsign.toUpperCase();
+    return Array.from(tbody.children).some(r => r.cells[0].textContent.toUpperCase() === callsign);
+  }
+
   document.getElementById("loginForm").addEventListener("submit", async e=>{
     e.preventDefault();
     const username=document.getElementById("username").value.trim();
@@ -233,7 +233,6 @@ document.addEventListener("DOMContentLoaded", function() {
       updateLoginDisplay();
       showStatus("Login successful","info");
 
-      // Lookup all existing callsigns
       for(const r of tbody.children){
         try{
           const data=await qrzLookupCall(r.cells[0].textContent);
@@ -250,6 +249,11 @@ document.addEventListener("DOMContentLoaded", function() {
     callInput.value=callsign;
     const freq=freqInput.value.trim();
     if(!callsign){ lookupResultEl.style.display="none"; return; }
+    if(isDuplicateCallsign(callsign)){
+      showStatus(`Call sign ${callsign} is already checked in.`, "error");
+      lookupResultEl.style.display="none";
+      return;
+    }
     if(freq && !isValidFrequency(freq)){ showStatus("Invalid frequency! Must be a valid ham band.","error"); return; }
     showStatus(`Looking up ${callsign}...`,"info");
     if(sessionKey){
@@ -271,10 +275,11 @@ document.addEventListener("DOMContentLoaded", function() {
   callInput.addEventListener("keydown", e=>{
     if(e.key==="Tab"){ e.preventDefault(); doLookup(); }
   });
+
   callInput.addEventListener("keypress", async e=>{
     if(e.key==="Enter" && callInput.value.trim()){
       await doLookup();
-      if(tempLookupData){
+      if(tempLookupData && !isDuplicateCallsign(tempLookupData.callsign)){
         const row=document.createElement("tr");
         const now=new Date();
         const timeStr=now.getHours().toString().padStart(2,"0")+":"+now.getMinutes().toString().padStart(2,"0")+":"+now.getSeconds().toString().padStart(2,"0");
@@ -321,7 +326,6 @@ document.addEventListener("DOMContentLoaded", function() {
     a.remove();
   });
 
-  // Table sorting
   document.querySelectorAll("#callTable th[data-key]").forEach(th=>{
     th.addEventListener("click", ()=>{
       const key=th.dataset.key;
@@ -340,7 +344,6 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   });
 
-  // Initialize saved data & session
   loadData();
   loadSession();
   setDownloadTooltip();
