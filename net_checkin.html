@@ -317,30 +317,39 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 
   callInput.addEventListener("keypress", async e=>{
-    if(e.key==="Enter" && callInput.value.trim()){
-      await doLookup();
-      if(tempLookupData){
-        const row=document.createElement("tr");
-        const now=new Date();
-        const timeStr=now.getHours().toString().padStart(2,"0")+":"+now.getMinutes().toString().padStart(2,"0")+":"+now.getSeconds().toString().padStart(2,"0");
+      if(e.key==="Enter" && callInput.value.trim()){
+	await doLookup();
+	if(tempLookupData){
+	  // Check for duplicate
+	  const callsignUpper = tempLookupData.callsign.toUpperCase();
+	  const duplicate = Array.from(tbody.children).some(r => r.cells[0].textContent.toUpperCase() === callsignUpper);
+	  if(duplicate){
+	    showStatus(`Duplicate call sign: ${callsignUpper}`, "error");
+	    return;
+	  }
 
-        row.innerHTML=`<td>${tempLookupData.callsign}</td><td>${tempLookupData.name}</td><td>${tempLookupData.location}</td><td>${timeStr}</td>`;
-        const trafficCell = createTrafficCell(e.shiftKey ? 1 : 0);
-        row.appendChild(trafficCell);
+	  const row=document.createElement("tr");
+	  const now=new Date();
+	  const timeStr=now.getHours().toString().padStart(2,"0")+":"+now.getMinutes().toString().padStart(2,"0")+":"+now.getSeconds().toString().padStart(2,"0");
 
-        const delTd = document.createElement("td");
-        const delBtn = document.createElement("button");
-        delBtn.className = "btn btn-sm btn-danger deleteBtn";
-        delBtn.textContent = "Delete";
-        delBtn.addEventListener("click", () => { row.remove(); saveData(); setDownloadTooltip(); });
-        delTd.appendChild(delBtn);
-        row.appendChild(delTd);
+	  row.innerHTML=`<td>${tempLookupData.callsign}</td><td>${tempLookupData.name}</td><td>${tempLookupData.location}</td><td>${timeStr}</td>`;
+	  const trafficCell = createTrafficCell(e.shiftKey ? 1 : 0); // Shift+Enter = Pending
+	  row.appendChild(trafficCell);
 
-        tbody.appendChild(row);
-        callInput.value=freqInput.value=""; lookupResultEl.style.display="none"; tempLookupData=null;
-        saveData(); setDownloadTooltip();
+	  const delTd = document.createElement("td");
+	  const delBtn = document.createElement("button");
+	  delBtn.className = "btn btn-sm btn-danger deleteBtn";
+	  delBtn.textContent = "Delete";
+	  delBtn.addEventListener("click", () => { row.remove(); saveData(); setDownloadTooltip(); });
+	  delTd.appendChild(delBtn);
+	  row.appendChild(delTd);
+
+	  tbody.appendChild(row);
+	  callInput.value=freqInput.value=""; lookupResultEl.style.display="none"; tempLookupData=null;
+	  showStatus("", "info");
+	  saveData(); setDownloadTooltip();
+	}
       }
-    }
   });
 
   document.getElementById("resetButton").addEventListener("click", ()=>{
