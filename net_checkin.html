@@ -160,15 +160,9 @@ document.addEventListener("DOMContentLoaded", function() {
   const netNameInput = document.getElementById("netName");
   const loginDropdown = document.getElementById("loginDropdown");
 
-  // --- New helper functions for consistent lookup result visibility ---
-  function showLookupResult() {
-    lookupResultEl.classList.remove("d-none");
-  }
-  function hideLookupResult() {
-    lookupResultEl.classList.add("d-none");
-  }
+  function showLookupResult() { lookupResultEl.classList.remove("d-none"); }
+  function hideLookupResult() { lookupResultEl.classList.add("d-none"); }
 
-  // Initialize tooltip
   let tooltip = new bootstrap.Tooltip(downloadWrapper);
 
   function showStatus(msg,type="error"){
@@ -215,7 +209,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const td = document.createElement("td");
     td.className = "text-center traffic-cell";
     let stateIndex = initialState;
-
     const i = document.createElement("i");
     i.className = trafficStates[stateIndex].icon;
     td.appendChild(i);
@@ -229,10 +222,7 @@ document.addEventListener("DOMContentLoaded", function() {
     td.getTrafficValue = () => trafficStates[stateIndex].value;
     td.setTrafficValue = (val) => {
       const idx = trafficStates.findIndex(s => s.value === val);
-      if(idx >= 0){
-        stateIndex = idx;
-        i.className = trafficStates[stateIndex].icon;
-      }
+      if(idx >= 0){ stateIndex = idx; i.className = trafficStates[stateIndex].icon; }
     }
 
     return td;
@@ -273,8 +263,15 @@ document.addEventListener("DOMContentLoaded", function() {
         delBtn.textContent = "Delete";
         delBtn.addEventListener("click", ()=>{ row.remove(); saveData(); setDownloadTooltip(); });
         delTd.appendChild(delBtn);
-        row.appendChild(delTd);
 
+        // --- Add Edit button ---
+        const editBtn = document.createElement("button");
+        editBtn.className = "btn btn-sm btn-secondary ms-1 editBtn";
+        editBtn.textContent = "Edit";
+        editBtn.addEventListener("click", () => startEditRow(row));
+        delTd.appendChild(editBtn);
+
+        row.appendChild(delTd);
         tbody.appendChild(row);
       });
     }
@@ -283,10 +280,7 @@ document.addEventListener("DOMContentLoaded", function() {
     if(saved.freq) freqInput.value=saved.freq;
   }
 
-  function updateLoginDisplay(){
-    loginDropdown.textContent = sessionUser ? sessionUser.toUpperCase() : "QRZ Login";
-  }
-
+  function updateLoginDisplay(){ loginDropdown.textContent = sessionUser ? sessionUser.toUpperCase() : "QRZ Login"; }
   function loadSession(){
       const sess = JSON.parse(localStorage.getItem("qrzSession") || "{}");
       if(sess.sessionKey && sess.sessionUser){
@@ -369,153 +363,153 @@ document.addEventListener("DOMContentLoaded", function() {
 
   addBtn.addEventListener("click", async (e) => {
     await doLookup();
-    if (tempLookupData) {
-      const callsignUpper = tempLookupData.callsign.toUpperCase();
-      const duplicate = Array.from(tbody.children).some(
-	r => r.cells[0].textContent.toUpperCase() === callsignUpper
-      );
-      if (duplicate) {
-	showStatus(`Duplicate call sign: ${callsignUpper}`, "error");
-	return;
-      }
-
-      const row = document.createElement("tr");
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString("en-US",{hour12:false});
-
-      row.innerHTML = `<td>${tempLookupData.callsign}</td><td>${tempLookupData.name}</td><td>${tempLookupData.location}</td><td>${timeStr}</td>`;
-      const trafficCell = createTrafficCell(e.shiftKey ? 1 : 0);
-      row.appendChild(trafficCell);
-
-      const delTd = document.createElement("td");
-      const delBtn = document.createElement("button");
-      delBtn.className = "btn btn-sm btn-danger deleteBtn";
-      delBtn.textContent = "Delete";
-      delBtn.addEventListener("click", () => {
-	row.remove();
-	saveData();
-	setDownloadTooltip();
-      });
-      delTd.appendChild(delBtn);
-      row.appendChild(delTd);
-
-      tbody.appendChild(row);
+    if(tempLookupData){
+      addRow(tempLookupData, e.shiftKey ? 1 : 0);
       callInput.value = "";
       hideLookupResult();
       tempLookupData = null;
       showStatus("", "info");
-      saveData();
-      setDownloadTooltip();
     }
   });
 
-  // Click or Shift+Click on lookup result to add
-  lookupResultEl.addEventListener("click", (e) => {
-    if (!tempLookupData) return;
+  lookupResultEl.addEventListener("click", (e)=>{
+    if(!tempLookupData) return;
+    addRow(tempLookupData, e.shiftKey ? 1 : 0);
+    callInput.value="";
+    hideLookupResult();
+    tempLookupData=null;
+    showStatus("", "info");
+  });
 
-    const callsignUpper = tempLookupData.callsign.toUpperCase();
-    const duplicate = Array.from(tbody.children).some(
-      r => r.cells[0].textContent.toUpperCase() === callsignUpper
-    );
-    if (duplicate) {
-      showStatus(`Duplicate call sign: ${callsignUpper}`, "error");
-      return;
+  function addRow(data, trafficState=0){
+    const callsignUpper = data.callsign.toUpperCase();
+    if(Array.from(tbody.children).some(r => r.cells[0].textContent.toUpperCase()===callsignUpper)){
+      showStatus(`Duplicate call sign: ${callsignUpper}`, "error"); return;
     }
-
+    const row = document.createElement("tr");
     const now = new Date();
     const timeStr = now.toLocaleTimeString("en-US",{hour12:false});
-
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${tempLookupData.callsign}</td>
-      <td>${tempLookupData.name}</td>
-      <td>${tempLookupData.location}</td>
-      <td>${timeStr}</td>
-    `;
-
-    const trafficCell = createTrafficCell(e.shiftKey ? 1 : 0);
+    row.innerHTML=`<td>${data.callsign}</td><td>${data.name}</td><td>${data.location}</td><td>${timeStr}</td>`;
+    const trafficCell = createTrafficCell(trafficState);
     row.appendChild(trafficCell);
 
-    const delTd = document.createElement("td");
-    const delBtn = document.createElement("button");
-    delBtn.className = "btn btn-sm btn-danger deleteBtn";
-    delBtn.textContent = "Delete";
-    delBtn.addEventListener("click", () => {
-      row.remove();
-      saveData();
-      setDownloadTooltip();
-    });
-    delTd.appendChild(delBtn);
-    row.appendChild(delTd);
+    const actionTd = document.createElement("td");
+    const delBtn=document.createElement("button");
+    delBtn.className="btn btn-sm btn-danger deleteBtn";
+    delBtn.textContent="Delete";
+    delBtn.addEventListener("click", ()=>{ row.remove(); saveData(); setDownloadTooltip(); });
+    actionTd.appendChild(delBtn);
 
+    const editBtn=document.createElement("button");
+    editBtn.className="btn btn-sm btn-secondary ms-1 editBtn";
+    editBtn.textContent="Edit";
+    editBtn.addEventListener("click", ()=>startEditRow(row));
+    actionTd.appendChild(editBtn);
+
+    row.appendChild(actionTd);
     tbody.appendChild(row);
-    callInput.value = "";
-    hideLookupResult();
-    tempLookupData = null;
-    showStatus("", "info");
     saveData();
     setDownloadTooltip();
-  });
+  }
+
+  function startEditRow(row){
+      const oldCall = row.cells[0].textContent;
+      const oldName = row.cells[1].textContent;
+      const oldLoc = row.cells[2].textContent;
+      const oldTime = row.cells[3].textContent;
+      const trafficVal = row.cells[4].getTrafficValue();
+
+      // Create input field
+      const input = document.createElement("input");
+      input.type="text";
+      input.className="form-control form-control-sm";
+      input.value = oldCall;
+
+      // Create inline error span
+      let errorSpan = document.createElement("span");
+      errorSpan.className = "text-danger small d-block mt-1";
+      errorSpan.textContent = "";
+
+      row.cells[0].innerHTML = "";
+      row.cells[0].appendChild(input);
+      row.cells[0].appendChild(errorSpan);
+      input.focus();
+
+      let lookupDone = false;
+
+      input.addEventListener("keydown", async e => {
+	  if (e.key === "Tab") {
+	      e.preventDefault();
+	      const val = input.value.trim().toUpperCase();
+	      if (!val) return;
+	      try {
+		  const data = sessionKey ? await qrzLookupCall(val) : { callsign: val, name: "—", location: "—" };
+		  row.cells[1].textContent = data.name;
+		  row.cells[2].textContent = data.location;
+		  lookupDone = true;
+		  errorSpan.textContent = "";
+	      } catch (err) {
+		  row.cells[1].textContent = "—";
+		  row.cells[2].textContent = "—";
+		  errorSpan.textContent = "Lookup failed.";
+	      }
+	  } else if (e.key === "Enter") {
+	      e.preventDefault();
+	      const val = input.value.trim().toUpperCase();
+	      if (!val) return;
+
+	      // --- Duplicate check ---
+	      const duplicate = Array.from(tbody.children).some(r => r !== row && r.cells[0].textContent.toUpperCase() === val);
+	      if (duplicate) {
+		  errorSpan.textContent = `Duplicate call sign: ${val}`;
+		  input.focus();
+		  return;
+	      }
+
+	      // Always do lookup on Enter, even if Tab wasn’t pressed
+	      try {
+		  const data = sessionKey ? await qrzLookupCall(val) : { callsign: val, name: "—", location: "—" };
+		  row.cells[1].textContent = data.name;
+		  row.cells[2].textContent = data.location;
+		  errorSpan.textContent = "";
+	      } catch (err) {
+		  row.cells[1].textContent = "—";
+		  row.cells[2].textContent = "—";
+		  errorSpan.textContent = "Lookup failed.";
+	      }
+
+	      // Save callsign and exit edit mode
+	      row.cells[0].textContent = val;
+	      saveData();
+	  } else if (e.key === "Escape") {
+	      row.cells[0].textContent = oldCall;
+	  }
+      });
+}
 
   callInput.addEventListener("input", ()=>{ callInput.value=callInput.value.toUpperCase(); });
-  callInput.addEventListener("keydown", e=>{
-    if(e.key==="Tab"){ e.preventDefault(); doLookup(); }
-  });
-
+  callInput.addEventListener("keydown", e=>{ if(e.key==="Tab"){ e.preventDefault(); doLookup(); } });
   callInput.addEventListener("keypress", async e=>{
       if(e.key==="Enter" && callInput.value.trim()){
 	await doLookup();
-	if(tempLookupData){
-	  const callsignUpper = tempLookupData.callsign.toUpperCase();
-	  const duplicate = Array.from(tbody.children).some(r => r.cells[0].textContent.toUpperCase() === callsignUpper);
-	  if(duplicate){
-	    showStatus(`Duplicate call sign: ${callsignUpper}`, "error");
-	    return;
-	  }
-
-	  const row=document.createElement("tr");
-	  const now=new Date();
-	  const timeStr=now.toLocaleTimeString("en-US",{hour12:false});
-
-	  row.innerHTML=`<td>${tempLookupData.callsign}</td><td>${tempLookupData.name}</td><td>${tempLookupData.location}</td><td>${timeStr}</td>`;
-	  const trafficCell = createTrafficCell(e.shiftKey ? 1 : 0);
-	  row.appendChild(trafficCell);
-
-	  const delTd = document.createElement("td");
-	  const delBtn = document.createElement("button");
-	  delBtn.className = "btn btn-sm btn-danger deleteBtn";
-	  delBtn.textContent = "Delete";
-	  delBtn.addEventListener("click", () => { row.remove(); saveData(); setDownloadTooltip(); });
-	  delTd.appendChild(delBtn);
-	  row.appendChild(delTd);
-
-	  tbody.appendChild(row);
-	  callInput.value=freqInput.value="";
-	  hideLookupResult();
-	  tempLookupData=null;
-	  showStatus("", "info");
-	  saveData();
-	  setDownloadTooltip();
-	}
+	if(tempLookupData) addRow(tempLookupData, e.shiftKey?1:0);
+	callInput.value=freqInput.value=""; hideLookupResult(); tempLookupData=null; showStatus("", "info");
       }
   });
 
   document.getElementById("resetButton").addEventListener("click", ()=>{
-    tbody.innerHTML="";
-    hideLookupResult();
+    tbody.innerHTML=""; hideLookupResult();
     callInput.value=freqInput.value=""; netNameInput.value="";
     setDefaultNetTime();
-    saveData();
-    setDownloadTooltip();
+    saveData(); setDownloadTooltip();
   });
 
   function updateDownloadState(){ setDownloadTooltip(); saveData(); }
-
   netNameInput.addEventListener("input", updateDownloadState);
   dtInput.addEventListener("input", updateDownloadState);
 
   downloadBtn.addEventListener("click", ()=>{
-    if(!netNameInput.value.trim() || !dtInput.value.trim()){ alert("Enter Net Name and Date/Time"); return; }
+    if(!netNameInput.value.trim()||!dtInput.value.trim()){ alert("Enter Net Name and Date/Time"); return; }
     if(tbody.children.length===0){ alert("No check-ins to download"); return; }
     let csv="Call Sign,Name,Location,Check-In Time,Traffic,Net Name,Net DateTime\n";
     Array.from(tbody.children).forEach(r=>{
