@@ -31,10 +31,10 @@ th { cursor: pointer; }
         <li>
           <form id="loginForm">
             <div class="mb-2">
-              <input type="text" class="form-control form-control-sm" id="username" placeholder="QRZ Username" autocomplete="username" required>
+              <input type="text" class="form-control form-control-sm" id="username" placeholder="QRZ Username" autocomplete="username">
             </div>
             <div class="mb-2">
-              <input type="password" class="form-control form-control-sm" id="password" placeholder="Password" autocomplete="current-password" required>
+              <input type="password" class="form-control form-control-sm" id="password" placeholder="Password" autocomplete="current-password">
             </div>
             <div class="d-grid">
               <button class="btn btn-primary btn-sm" type="submit">Login</button>
@@ -51,8 +51,8 @@ th { cursor: pointer; }
     <div class="card-body">
       <h5 class="card-title">Enter Call Sign</h5>
       <div class="input-group">
-        <input id="callsignInput" type="text" class="form-control" placeholder="e.g., K1ABC" disabled>
-        <button id="lookupButton" class="btn btn-primary" disabled>Lookup</button>
+        <input id="callsignInput" type="text" class="form-control" placeholder="e.g., K1ABC">
+        <button id="lookupButton" class="btn btn-primary">Lookup</button>
       </div>
       <div id="status" class="form-text mt-2"></div>
       <div id="lookupResult" class="pending-box" style="display:none;"></div>
@@ -100,6 +100,16 @@ document.addEventListener("DOMContentLoaded", function() {
   const downloadBtn = document.getElementById("downloadCSV");
   const netNameInput = document.getElementById("netName");
 
+  // Enable inputs by default
+  callInput.disabled = false;
+  lookupBtn.disabled = false;
+  freqInput.disabled = false;
+
+  // Auto-uppercase input
+  callInput.addEventListener("input", e => {
+    callInput.value = callInput.value.toUpperCase();
+  });
+
   function showStatus(msg, type="error") {
     if(!msg){ statusEl.style.display="none"; return; }
     statusEl.style.display="block";
@@ -123,6 +133,7 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 
   async function qrzLookupCall(callsign){
+    if(!sessionKey) return {callsign: callsign.toUpperCase(), name:"—", location:"—"};
     const url = `https://xmldata.qrz.com/xml/current/?s=${encodeURIComponent(sessionKey)}&callsign=${encodeURIComponent(callsign)}`;
     const resp = await fetch(url);
     const text = await resp.text();
@@ -135,36 +146,18 @@ document.addEventListener("DOMContentLoaded", function() {
     const lname = xml.querySelector("name")?.textContent||"";
     const addr2 = xml.querySelector("addr2")?.textContent||"";
     const country = xml.querySelector("country")?.textContent||"";
-    return {callsign,name:(fname+" "+lname).trim()||"—",location:(addr2+", "+country).trim()||"—"};
+    return {callsign: callsign.toUpperCase(), name:(fname+" "+lname).trim()||"—", location:(addr2+", "+country).trim()||"—"};
   }
 
-  document.getElementById("loginForm").addEventListener("submit", async e=>{
-    e.preventDefault();
-    const username = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value.trim();
-    if(!username || !password) return;
-    showStatus("Logging in...", "info");
-    try {
-      const url=`https://xmldata.qrz.com/xml/current/?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&agent=net_checkins`;
-      const resp = await fetch(url);
-      const text = await resp.text();
-      const keyMatch = text.match(/<Key>(.*?)<\/Key>/);
-      if(!keyMatch) throw new Error("Login failed. Check username/password.");
-      sessionKey = keyMatch[1];
-      showStatus("Login successful","info");
-      callInput.disabled = lookupBtn.disabled = freqInput.disabled = false;
-    } catch(err){ console.error(err); showStatus(`Login failed: ${err.message}`, "error"); }
-  });
-
   async function doLookup() {
-    const callsign = callInput.value.trim().toUpperCase();
+    const callsign = callInput.value.trim();
     const freq = freqInput.value.trim();
     if(!callsign){ lookupResultEl.style.display="none"; return; }
     if(freq && !isValidFrequency(freq)){ 
       showStatus("Invalid frequency! Must be a valid ham band.","error"); 
       return; 
     }
-    showStatus(`Looking up ${callsign}...`, "info");
+    showStatus(`Looking up ${callsign.toUpperCase()}...`, "info");
     try{
       tempLookupData = await qrzLookupCall(callsign);
       tempLookupData.freq = freq;
@@ -181,22 +174,27 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 
   callInput.addEventListener("keypress", e=>{
-    if(e.key==="Enter" && tempLookupData){
-      const row = document.createElement("tr");
-      const now = new Date();
-      const timeStr = now.getHours().toString().padStart(2,"0")+":"+now.getMinutes().toString().padStart(2,"0")+":"+now.getSeconds().toString().padStart(2,"0");
-      row.innerHTML = `<td>${tempLookupData.callsign}</td>
-                       <td>${tempLookupData.name}</td>
-                       <td>${tempLookupData.location}</td>
-                       <td>${timeStr}</td>
-                       <td><button class="btn btn-sm btn-danger deleteBtn">Delete</button></td>`;
-      tbody.appendChild(row);
-      row.querySelector(".deleteBtn").addEventListener("click", ()=>row.remove());
+    if(e.key==="Enter" && callInput.value.trim()){
+      const data = tempLookupData || {callsign: callInput.value.trim().toUpperCase(), name:"—", location:"—"};
+      addCheckinRow(data);
       callInput.value = freqInput.value = "";
       lookupResultEl.style.display="none";
       tempLookupData = null;
     }
   });
+
+  function addCheckinRow(data){
+    const row = document.createElement("tr");
+    const now = new Date();
+    const timeStr = now.getHours().toString().padStart(2,"0")+":"+now.getMinutes().toString().padStart(2,"0")+":"+now.getSeconds().toString().padStart(2,"0");
+    row.innerHTML = `<td>${data.callsign}</td>
+                     <td>${data.name}</td>
+                     <td>${data.location}</td>
+                     <td>${timeStr}</td>
+                     <td><button class="btn btn-sm btn-danger deleteBtn">Delete</button></td>`;
+    tbody.appendChild(row);
+    row.querySelector(".deleteBtn").addEventListener("click", ()=>row.remove());
+  }
 
   document.getElementById("resetButton").addEventListener("click", ()=>{
     tbody.innerHTML = "";
@@ -253,10 +251,45 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   });
 
+  // Login form
+  document.getElementById("loginForm").addEventListener("submit", async e=>{
+    e.preventDefault();
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+    if(!username || !password) return;
+    showStatus("Logging in...", "info");
+    try {
+      const url=`https://xmldata.qrz.com/xml/current/?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&agent=net_checkins`;
+      const resp = await fetch(url);
+      const text = await resp.text();
+      const keyMatch = text.match(/<Key>(.*?)<\/Key>/);
+      if(!keyMatch) throw new Error("Login failed. Check username/password.");
+      sessionKey = keyMatch[1];
+      showStatus("Login successful","info");
+
+      // Lookup previously entered call signs that were placeholders
+      const rows = Array.from(tbody.children);
+      for(const row of rows){
+        const csCell = row.cells[0].textContent.trim();
+        const nameCell = row.cells[1];
+        const locCell = row.cells[2];
+        if(nameCell.textContent==="—" && locCell.textContent==="—"){
+          try {
+            const data = await qrzLookupCall(csCell);
+            nameCell.textContent = data.name;
+            locCell.textContent = data.location;
+          } catch(err){ console.error(err); }
+        }
+      }
+
+    } catch(err){ console.error(err); showStatus(`Login failed: ${err.message}`, "error"); }
+  });
+
 });
 </script>
+
 <footer class="bg-light text-center text-muted py-2 fixed-bottom border-top">
-    <small>Copyright &copy; 2025, <a href="https://n2vlv.net" target=_blank>Jeffrey Honig / N2VLV</a> &nbsp; <a href="mailto:n2vlv@honig.net">n2vlv@honig.net</a></small>
+<small>Copyright &copy; 2025, <a href="https://n2vlv.net" target=_blank>Jeffrey Honig / N2VLV</a> &nbsp; <a href="mailto:n2vlv@honig.net">n2vlv@honig.net</a></small>
 </footer>
 </body>
 </html>
