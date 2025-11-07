@@ -138,11 +138,11 @@ th { cursor: pointer; }
       <table class="table table-striped" id="callTable">
         <thead>
           <tr>
-            <th data-key="callsign">Call Sign</th>
+            <th colspan=2 data-key="callsign">Call Sign</th>
             <th data-key="name">Name</th>
             <th data-key="location">Location</th>
             <th data-key="time">Check-In Time</th>
-            <th class="text-center">Traffic</th>
+            <th data-key="traffic" class="text-center">Traffic</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -157,7 +157,7 @@ th { cursor: pointer; }
 <script>
 document.addEventListener("DOMContentLoaded", function() {
   const hamBands=[[1.8,2],[3.5,4],[7,7.3],[14,14.35],[21,21.45],[28,29.7],[50,54],[144,148],[222,225],[420,450]];
-  let sessionKey = null, sessionUser=null, xmlCache={};
+  let sessionKey = null, sessionUser=null, tempLookupData=null, currentSort={key:null,asc:true}, xmlCache={};
 
   const dtInput = document.getElementById("netDateTime");
   function setDefaultNetTime(){
@@ -169,6 +169,7 @@ document.addEventListener("DOMContentLoaded", function() {
   setDefaultNetTime();
 
   const statusEl = document.getElementById("status");
+  const lookupResultEl = document.getElementById("lookupResult");
   const callInput = document.getElementById("callsignInput");
   const addBtn = document.getElementById("addButton");
   const lookupBtn = document.getElementById("lookupButton");
@@ -183,12 +184,44 @@ document.addEventListener("DOMContentLoaded", function() {
   const infoTableBody = document.querySelector("#infoTable tbody");
   const infoModal = new bootstrap.Modal(infoModalEl);
 
+  function showLookupResult() { lookupResultEl.classList.remove("d-none"); }
+  function hideLookupResult() { lookupResultEl.classList.add("d-none"); }
+
+  let tooltip = new bootstrap.Tooltip(downloadWrapper);
+
   function showStatus(msg,type="error"){
     if(!msg){ statusEl.style.display="none"; return; }
     statusEl.style.display="block";
     statusEl.textContent = msg;
     statusEl.className = type==="error"?"error-msg":"info-msg";
   }
+
+  function isValidFrequency(freq){
+    const f=parseFloat(freq);
+    if(isNaN(f)) return false;
+    return hamBands.some(b=>f>=b[0]&&f<=b[1]);
+  }
+
+  function setDownloadTooltip(){
+    let missing = [];
+    if(!netNameInput.value.trim()) missing.push("Net Name");
+    if(!dtInput.value.trim()) missing.push("Net Date/Time");
+    if(tbody.children.length===0) missing.push("At least one check-in");
+
+    const tooltipText = missing.length ? "Fill in: " + missing.join(", ") : "Download CSV";
+    downloadBtn.disabled = missing.length > 0;
+
+    tooltip.dispose();
+    downloadWrapper.setAttribute("title", tooltipText);
+    tooltip = new bootstrap.Tooltip(downloadWrapper);
+  }
+
+  freqInput.addEventListener("blur", ()=>{
+    const freq=freqInput.value.trim();
+    if(freq && !isValidFrequency(freq)){
+      showStatus("Invalid frequency! Must be a valid ham band in MHz.","error");
+    } else showStatus("", "info");
+  });
 
   const trafficStates = [
     { icon: "bi-circle text-secondary", value: "-" },
@@ -219,11 +252,12 @@ document.addEventListener("DOMContentLoaded", function() {
   function saveData(){
     const data={
       calls:Array.from(tbody.children).map(r=>({
-        callsign:r.cells[0].textContent,
-        name:r.cells[1].textContent,
-        location:r.cells[2].textContent,
-        time:r.cells[3].textContent,
-        traffic:r.cells[4].getTrafficValue()
+        callsign:r.cells[1].textContent,
+        name:r.cells[2].textContent,
+        location:r.cells[3].textContent,
+        time:r.cells[4].textContent,
+        traffic:r.cells[5].getTrafficValue(),
+        imgSrc:r.cells[0].querySelector("img")?.src || ""
       })),
       netName:netNameInput.value,
       netDateTime:dtInput.value,
@@ -233,6 +267,224 @@ document.addEventListener("DOMContentLoaded", function() {
     if(sessionKey && sessionUser){
       localStorage.setItem("qrzSession",JSON.stringify({sessionKey,sessionUser}));
     }
+  }
+
+  function createActionButtons(row, callsign){
+    const td = document.createElement("td");
+
+    const editBtn = document.createElement("button");
+    editBtn.className="btn btn-sm btn-primary me-1";
+    editBtn.textContent="Edit";
+    editBtn.addEventListener("click", ()=>{
+      const cell = row.cells[1];
+      const oldVal = cell.textContent;
+      const input = document.createElement("input");
+      input.type="text";
+      input.value = oldVal;
+      input.className = "form-control form-control-sm";
+      cell.textContent = "";
+      cell.appendChild(input);
+      input.focus();
+
+      input.addEventListener("keydown", async (e)=>{
+        if(e.key==="Tab"){
+          e.preventDefault();
+          const val = input.value.trim().toUpperCase();
+          if(sessionKey && val){
+            try{
+              const data = await qrzLookupCall(val);
+              row.cells[2].textContent = data.name;
+              row.cells[3].textContent = data.location;
+              xmlCache[val] = data;
+              tempLookupData = data;
+            }catch(err){ alert("Lookup failed"); }
+          }
+        } else if(e.key==="Enter" || (e.shiftKey && e.key==="Enter")){
+          e.preventDefault();
+          const val = input.value.trim().toUpperCase();
+          if(!val) return;
+
+          if(Array.from(tbody.children).some(r=>r!==row && r.cells[1].textContent.toUpperCase()===val)){
+            alert("Duplicate call sign!");
+            return;
+          }
+
+          let data = xmlCache[val];
+          if(!data && sessionKey){
+            try{
+              data = await qrzLookupCall(val);
+              xmlCache[val] = data;
+              tempLookupData = data;
+            }catch(err){ alert("Lookup failed"); return; }
+          }
+
+          cell.textContent = val;
+          row.cells[2].textContent = data?.name || "—";
+          row.cells[3].textContent = data?.location || "—";
+
+          const imgCell = row.cells[0];
+          imgCell.innerHTML = "";
+          if(data?.xmlData){
+            const parser = new DOMParser();
+            const xml = parser.parseFromString(data.xmlData, "application/xml");
+            const imgNode = xml.querySelector("image") || xml.querySelector("photo");
+            if(imgNode && imgNode.textContent){
+              const img = document.createElement("img");
+              img.src = imgNode.textContent;
+              img.style.height = "40px";
+              img.style.width = "auto";
+              img.style.verticalAlign = "middle";
+              imgCell.appendChild(img);
+            }
+          }
+
+          if(e.shiftKey) row.cells[5].setTrafficValue("*");
+          saveData();
+        } else if(e.key==="Escape"){
+          cell.textContent = oldVal;
+        }
+      });
+    });
+
+    const infoBtn = document.createElement("button");
+    infoBtn.className="btn btn-sm btn-info me-1";
+    infoBtn.textContent="Info";
+    infoBtn.addEventListener("click", async ()=>{
+      const cs = row.cells[1].textContent;
+      let data = xmlCache[cs];
+      if(!data && sessionKey){
+        try{
+          data = await qrzLookupCall(cs);
+          xmlCache[cs] = data;
+        }catch(err){ alert("Lookup failed"); return; }
+      }
+
+      if(data){
+        infoTableBody.innerHTML="";
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(data.xmlData,"application/xml");
+        const callNode = xml.querySelector("Callsign");
+        if(callNode){
+          Array.from(callNode.children).forEach(child=>{
+            const tr = document.createElement("tr");
+            const th = document.createElement("th"); th.textContent = child.tagName;
+            const td = document.createElement("td"); td.textContent = child.textContent;
+            tr.appendChild(th);
+            tr.appendChild(td);
+            infoTableBody.appendChild(tr);
+          });
+        }
+        infoModal.show();
+      }
+    });
+
+    const delBtn = document.createElement("button");
+    delBtn.className="btn btn-sm btn-danger";
+    delBtn.textContent="Delete";
+    delBtn.addEventListener("click", ()=>{ row.remove(); saveData(); setDownloadTooltip(); });
+
+    td.appendChild(editBtn);
+    td.appendChild(infoBtn);
+    td.appendChild(delBtn);
+    return td;
+  }
+
+  function addRowToTable(data, trafficState=0){
+    const row=document.createElement("tr");
+
+    const imgCell = document.createElement("td");
+    if(data.imgSrc){
+      const img = document.createElement("img");
+      img.src = data.imgSrc;
+      img.style.height = "40px";
+      img.style.width = "auto";
+      img.style.verticalAlign = "middle";
+      imgCell.appendChild(img);
+    }
+    row.appendChild(imgCell);
+
+    const now=new Date();
+    const timeStr=now.toLocaleTimeString("en-US",{hour12:false});
+    row.innerHTML += `<td>${data.callsign}</td><td>${data.name}</td><td>${data.location}</td><td>${timeStr}</td>`;
+    const trafficCell = createTrafficCell(trafficState);
+    row.appendChild(trafficCell);
+    row.appendChild(createActionButtons(row,data.callsign));
+    tbody.appendChild(row);
+  }
+
+  function loadData(){
+    const saved=JSON.parse(localStorage.getItem("netCheckData")||"{}");
+    if(saved.calls){
+      saved.calls.forEach(c=>{
+        const row=document.createElement("tr");
+        const imgCell = document.createElement("td");
+        if(c.imgSrc){
+          const img = document.createElement("img");
+          img.src = c.imgSrc;
+          img.style.height="40px";
+          img.style.width="auto";
+          img.style.verticalAlign="middle";
+          imgCell.appendChild(img);
+        }
+        row.appendChild(imgCell);
+        row.innerHTML += `<td>${c.callsign}</td><td>${c.name}</td><td>${c.location}</td><td>${c.time}</td>`;
+        const trafficCell = createTrafficCell();
+        trafficCell.setTrafficValue(c.traffic || "-");
+        row.appendChild(trafficCell);
+        row.appendChild(createActionButtons(row,c.callsign));
+        tbody.appendChild(row);
+      });
+    }
+    if(saved.netName) netNameInput.value=saved.netName;
+    if(saved.netDateTime) dtInput.value=saved.netDateTime;
+    if(saved.freq) freqInput.value=saved.freq;
+  }
+
+  function updateLoginDisplay(){ loginDropdown.textContent = sessionUser ? sessionUser.toUpperCase() : "QRZ Login"; }
+
+  // --- QRZ Login Handler ---
+  document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+    if(!username || !password) { alert("Enter username and password"); return; }
+
+    showStatus("Logging in...", "info");
+
+    try {
+      // QRZ XML login request
+      const url = `https://xmldata.qrz.com/xml/current/?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+      const resp = await fetch(url);
+      const text = await resp.text();
+      const xml = new DOMParser().parseFromString(text, "application/xml");
+
+      const keyNode = xml.querySelector("Session > Key");
+      if(!keyNode) throw new Error("Login failed");
+
+      sessionKey = keyNode.textContent;
+      sessionUser = username;
+      localStorage.setItem("qrzSession", JSON.stringify({ sessionKey, sessionUser }));
+      updateLoginDisplay();
+      showStatus("Logged in successfully", "info");
+
+      callInput.disabled = lookupBtn.disabled = freqInput.disabled = false;
+    } catch(err) {
+      sessionKey = null;
+      sessionUser = null;
+      localStorage.removeItem("qrzSession");
+      updateLoginDisplay();
+      showStatus("QRZ login failed", "error");
+    }
+  });
+
+  function loadSession(){
+    const sess = JSON.parse(localStorage.getItem("qrzSession") || "{}");
+    if(sess.sessionKey && sess.sessionUser){
+      sessionKey = sess.sessionKey;
+      sessionUser = sess.sessionUser;
+    }
+    updateLoginDisplay();
+    callInput.disabled = lookupBtn.disabled = freqInput.disabled = false;
   }
 
   async function qrzLookupCall(callsign){
@@ -250,222 +502,117 @@ document.addEventListener("DOMContentLoaded", function() {
     const lname = xml.querySelector("name")?.textContent||"";
     const addr2 = xml.querySelector("addr2")?.textContent||"";
     const country = xml.querySelector("country")?.textContent||"";
-    return {callsign, name: (fname+" "+lname).trim()||"—", location: (addr2+", "+country).trim()||"—", xmlData: text};
+    return {
+      callsign,
+      name: (fname+" "+lname).trim()||"—",
+      location: (addr2+", "+country).trim()||"—",
+      xmlData: text,
+      imgSrc: xml.querySelector("image")?.textContent || xml.querySelector("photo")?.textContent || ""
+    };
   }
 
-  function createActionButtons(row){
-    const td = document.createElement("td");
+  // --- Main input key handling ---
+  callInput.addEventListener("keydown", async e => {
+    if(e.key==="Tab" || e.key==="Enter"){
+      e.preventDefault();
+      const val = callInput.value.trim().toUpperCase();
+      if(!val) return;
 
-    // --- Edit button: inline edit Call Sign only ---
-    const editBtn = document.createElement("button");
-    editBtn.className = "btn btn-sm btn-primary me-1";
-    editBtn.textContent = "Edit";
-    editBtn.addEventListener("click", () => {
-      const callCell = row.cells[0];
-      const origCall = callCell.textContent;
-      let lastLookupCall = null;
-
-      callCell.contentEditable = true;
-      callCell.focus();
-
-      const sel = window.getSelection();
-      const range = document.createRange();
-      range.selectNodeContents(callCell);
-      sel.removeAllRanges();
-      sel.addRange(range);
-
-      function finishEdit(save) {
-        callCell.contentEditable = false;
-        callCell.removeEventListener("keydown", keyHandler);
-        if(!save) callCell.textContent = origCall;
-        saveData();
-      }
-
-      async function performLookup() {
-        const newCall = callCell.textContent.trim().toUpperCase();
-        if(!newCall) return;
-        if(Array.from(tbody.children).some(r=>r!==row && r.cells[0].textContent.toUpperCase()===newCall)){
-          alert("Duplicate call sign!");
-          callCell.textContent = origCall;
-          return;
-        }
-        try {
-          let data = xmlCache[newCall];
-          if(!data && sessionKey){
-            data = await qrzLookupCall(newCall);
-            xmlCache[newCall] = data;
-          }
-          if(data){
-            row.cells[1].textContent = data.name;
-            row.cells[2].textContent = data.location;
-          }
-          lastLookupCall = newCall;
-        } catch(err){
-          alert("Lookup failed");
-        }
-      }
-
-      async function keyHandler(e){
-        if(e.key === "Tab"){
-          e.preventDefault();
-          await performLookup();
-        } else if(e.key === "Enter"){
-          e.preventDefault();
-          if(lastLookupCall !== callCell.textContent.trim().toUpperCase()){
-            await performLookup();
-          }
-          finishEdit(true);
-        } else if(e.key === "Escape"){
-          e.preventDefault();
-          finishEdit(false);
-        }
-      }
-
-      callCell.addEventListener("keydown", keyHandler);
-    });
-
-    // --- Info Button ---
-    const infoBtn = document.createElement("button");
-    infoBtn.className="btn btn-sm btn-info me-1";
-    infoBtn.textContent="Info";
-    infoBtn.addEventListener("click", async ()=>{
-      const cs = row.cells[0].textContent;
-      let data = xmlCache[cs];
-      let xmlText = "";
-
+      let data = xmlCache[val];
       if(!data && sessionKey){
-        try{
-          data = await qrzLookupCall(cs);
-          xmlCache[cs] = data;
-          xmlText = data.xmlData;
-        }catch(err){ alert("Lookup failed"); return; }
-      } else if(data && data.xmlData){
-        xmlText = data.xmlData;
+        try{ data = await qrzLookupCall(val); xmlCache[val]=data; }catch(err){ alert("Lookup failed"); return; }
       }
+      lookupResultEl.textContent = data ? `${data.callsign} - ${data.name} (${data.location})` : val;
+      showLookupResult();
 
-      if(xmlText){
-        const parser = new DOMParser();
-        const xml = parser.parseFromString(xmlText, "application/xml");
-        const callNode = xml.querySelector("Callsign");
-        infoTableBody.innerHTML = "";
-
-        if(callNode){
-          Array.from(callNode.children).forEach(child => {
-            const tr = document.createElement("tr");
-            const th = document.createElement("th"); th.textContent = child.tagName;
-            const td = document.createElement("td"); td.textContent = child.textContent;
-            tr.appendChild(th);
-            tr.appendChild(td);
-            infoTableBody.appendChild(tr);
-          });
-        } else {
-          const tr = document.createElement("tr");
-          const td = document.createElement("td"); td.colSpan = 2;
-          td.textContent = "No Callsign data available";
-          tr.appendChild(td);
-          infoTableBody.appendChild(tr);
-        }
-
-        infoModal.show();
-      }
-    });
-
-    // --- Delete Button ---
-    const delBtn = document.createElement("button");
-    delBtn.className="btn btn-sm btn-danger";
-    delBtn.textContent="Delete";
-    delBtn.addEventListener("click", ()=>{ row.remove(); saveData(); });
-
-    td.appendChild(editBtn);
-    td.appendChild(infoBtn);
-    td.appendChild(delBtn);
-
-    return td;
-  }
-
-  function addRowToTable(data, trafficState=0){
-    const row=document.createElement("tr");
-    const now=new Date();
-    const timeStr=now.toLocaleTimeString("en-US",{hour12:false});
-    row.innerHTML=`<td>${data.callsign}</td><td>${data.name}</td><td>${data.location}</td><td>${timeStr}</td>`;
-    const trafficCell = createTrafficCell(trafficState);
-    row.appendChild(trafficCell);
-    row.appendChild(createActionButtons(row));
-    tbody.appendChild(row);
-  }
-
-  function loadData(){
-    const saved=JSON.parse(localStorage.getItem("netCheckData")||"{}");
-    if(saved.calls){
-      saved.calls.forEach(c=>{
-        const row=document.createElement("tr");
-        row.innerHTML=`<td>${c.callsign}</td><td>${c.name}</td><td>${c.location}</td><td>${c.time}</td>`;
-        const trafficCell = createTrafficCell();
-        trafficCell.setTrafficValue(c.traffic || "-");
-        row.appendChild(trafficCell);
-        row.appendChild(createActionButtons(row));
-        tbody.appendChild(row);
-      });
-    }
-    if(saved.netName) netNameInput.value=saved.netName;
-    if(saved.netDateTime) dtInput.value=saved.netDateTime;
-    if(saved.freq) freqInput.value=saved.freq;
-  }
-
-  function updateLoginDisplay(){ loginDropdown.textContent = sessionUser ? sessionUser.toUpperCase() : "QRZ Login"; }
-
-  function loadSession(){
-    const sess = JSON.parse(localStorage.getItem("qrzSession") || "{}");
-    if(sess.sessionKey && sess.sessionUser){
-      sessionKey = sess.sessionKey;
-      sessionUser = sess.sessionUser;
-    }
-    updateLoginDisplay();
-    callInput.disabled = lookupBtn.disabled = freqInput.disabled = false;
-  }
-
-  // --- Main input field handlers (TAB / Enter / Shift+Enter) ---
-  callInput.addEventListener("keydown", async (e)=>{
-    const callsign = callInput.value.trim().toUpperCase();
-    if(!callsign) return;
-
-    if(e.key === "Tab"){
-      e.preventDefault();
-      // Lookup without adding
-      try{
-        let data = xmlCache[callsign];
-        if(!data && sessionKey){
-          data = await qrzLookupCall(callsign);
-          xmlCache[callsign] = data;
-        }
-        if(data){
-          showStatus(`${data.name} — ${data.location}`,"info");
-        }
-      }catch(err){ showStatus("Lookup failed","error"); }
-    } else if(e.key === "Enter"){
-      e.preventDefault();
-      const isShift = e.shiftKey;
-      try{
-        let data = xmlCache[callsign];
-        if(!data && sessionKey){
-          data = await qrzLookupCall(callsign);
-          xmlCache[callsign] = data;
-        }
-        if(Array.from(tbody.children).some(r=>r.cells[0].textContent.toUpperCase()===callsign)){
-          alert("Duplicate call sign!");
-          return;
-        }
-        const rowData = data ? {callsign, name: data.name, location: data.location} : {callsign, name: "—", location: "—"};
-        addRowToTable(rowData, isShift ? 1 : 0);
+      if(e.key==="Enter"){
+        const shift = e.shiftKey;
+        addRowToTable({
+          callsign: val,
+          name: data?.name || "—",
+          location: data?.location || "—",
+          imgSrc: data?.imgSrc || ""
+        }, shift ? 1 : 0);
         callInput.value="";
-        showStatus("", "info");
-        saveData();
-      }catch(err){ showStatus("Lookup failed","error"); }
+        hideLookupResult();
+        setDownloadTooltip();
+      }
+    } else if(e.key==="Escape") hideLookupResult();
+  });
+
+  lookupBtn.addEventListener("click", async ()=>{
+    const val = callInput.value.trim().toUpperCase();
+    if(!val) return;
+    let data = xmlCache[val];
+    if(!data && sessionKey){
+      try{ data = await qrzLookupCall(val); xmlCache[val]=data; }catch(err){ alert("Lookup failed"); return; }
     }
+    lookupResultEl.textContent = data ? `${data.callsign} - ${data.name} (${data.location})` : val;
+    showLookupResult();
+  });
+
+  addBtn.addEventListener("click", async ()=>{
+    const val = callInput.value.trim().toUpperCase();
+    if(!val) return;
+    let data = xmlCache[val];
+    if(!data && sessionKey){
+      try{ data = await qrzLookupCall(val); xmlCache[val]=data; }catch(err){ alert("Lookup failed"); return; }
+    }
+    addRowToTable({
+      callsign: val,
+      name: data?.name || "—",
+      location: data?.location || "—",
+      imgSrc: data?.imgSrc || ""
+    });
+    callInput.value="";
+    hideLookupResult();
+    setDownloadTooltip();
+  });
+
+  // --- Table Sorting including Traffic and check-in time with direction indicators ---
+  const headers = document.querySelectorAll("#callTable th[data-key]");
+  headers.forEach(th => {
+    th.style.cursor = "pointer";
+    th.addEventListener("click", () => {
+      const key = th.getAttribute("data-key");
+      if (!key) return;
+
+      if (currentSort.key === key) currentSort.asc = !currentSort.asc;
+      else currentSort = { key, asc: true };
+
+      headers.forEach(h => {
+        h.textContent = h.textContent.replace(/[\u25B2\u25BC]/g,'');
+        if(h.getAttribute("data-key")===currentSort.key){
+          h.textContent += currentSort.asc ? " ▲" : " ▼";
+        }
+      });
+
+      const rows = Array.from(tbody.querySelectorAll("tr"));
+      rows.sort((a, b) => {
+        let cmp = 0;
+
+        if (key === "callsign") cmp = a.cells[1].textContent.toUpperCase().localeCompare(b.cells[1].textContent.toUpperCase());
+        else if (key === "name") cmp = a.cells[2].textContent.toUpperCase().localeCompare(b.cells[2].textContent.toUpperCase());
+        else if (key === "location") cmp = a.cells[3].textContent.toUpperCase().localeCompare(b.cells[3].textContent.toUpperCase());
+        else if (key === "time") cmp = a.cells[4].textContent.localeCompare(b.cells[4].textContent);
+        else if (key === "traffic") {
+          const trafficOrder = {"-":0,"*":1,"✔":2};
+          const aTraffic = a.cells[5].getTrafficValue();
+          const bTraffic = b.cells[5].getTrafficValue();
+          cmp = trafficOrder[aTraffic] - trafficOrder[bTraffic];
+          if(cmp === 0) cmp = a.cells[4].textContent.localeCompare(b.cells[4].textContent);
+        }
+
+        return currentSort.asc ? cmp : -cmp;
+      });
+
+      rows.forEach(r => tbody.appendChild(r));
+    });
   });
 
   loadData();
   loadSession();
+  setDownloadTooltip();
 });
 </script>
 
