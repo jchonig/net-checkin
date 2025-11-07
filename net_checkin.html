@@ -26,7 +26,7 @@ th { cursor: pointer; }
       <button id="downloadCSV" type="button" class="btn btn-success btn-sm" disabled>Download CSV</button>
     </form>
     <div class="dropdown ms-auto">
-      <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="loginDropdown" data-bs-toggle="dropdown" aria-expanded="false">QRZ Login</button>
+      <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="loginDropdown" data-bs-toggle="dropdown" aria-expanded="false">Login to QRZ</button>
       <ul class="dropdown-menu dropdown-menu-end p-3" style="min-width: 250px;">
         <li>
           <form id="loginForm">
@@ -51,8 +51,8 @@ th { cursor: pointer; }
     <div class="card-body">
       <h5 class="card-title">Enter Call Sign</h5>
       <div class="input-group">
-        <input id="callsignInput" type="text" class="form-control text-uppercase" placeholder="e.g., K1ABC">
-        <button id="lookupButton" class="btn btn-primary">Lookup</button>
+        <input id="callsignInput" type="text" class="form-control" placeholder="e.g., K1ABC" disabled>
+        <button id="lookupButton" class="btn btn-primary" disabled>Lookup</button>
       </div>
       <div id="status" class="form-text mt-2"></div>
       <div id="lookupResult" class="pending-box" style="display:none;"></div>
@@ -85,7 +85,7 @@ th { cursor: pointer; }
 <script>
 document.addEventListener("DOMContentLoaded", function() {
   const hamBands=[[1.8,2],[3.5,4],[7,7.3],[14,14.35],[21,21.45],[28,29.7],[50,54],[144,148],[222,225],[420,450]];
-  let sessionKey = null, tempLookupData = null, currentSort = {key:null,asc:true};
+  let sessionKey = null, qrzUsername = null, tempLookupData = null;
   const callDataMap = new Map();
 
   const dtInput = document.getElementById("netDateTime");
@@ -100,6 +100,7 @@ document.addEventListener("DOMContentLoaded", function() {
   const tbody = document.querySelector("#callTable tbody");
   const downloadBtn = document.getElementById("downloadCSV");
   const netNameInput = document.getElementById("netName");
+  const loginBtn = document.getElementById("loginDropdown");
 
   function showStatus(msg, type="error") {
     if(!msg){ statusEl.style.display="none"; return; }
@@ -124,88 +125,108 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 
   async function qrzLookupCall(callsign){
-    if(!sessionKey) return null;
+    if(!sessionKey) throw new Error("Not logged in to QRZ");
     const url = `https://xmldata.qrz.com/xml/current/?s=${encodeURIComponent(sessionKey)}&callsign=${encodeURIComponent(callsign)}`;
     const resp = await fetch(url);
     const text = await resp.text();
     const xml = new DOMParser().parseFromString(text, "application/xml");
-    const errorNode = xml.querySelector("Session > Error");
-    if(errorNode) throw new Error(errorNode.textContent.trim());
+    const errorNode = xml.querySelector("Session > Error") || xml.querySelector("Error");
+    if(errorNode){
+      if(/invalid/i.test(errorNode.textContent)) resetLoginState();
+      throw new Error(errorNode.textContent.trim());
+    }
     const callNode = xml.querySelector("Callsign");
     if(!callNode) throw new Error("Callsign not found");
     const fname = xml.querySelector("fname")?.textContent||"";
     const lname = xml.querySelector("name")?.textContent||"";
     const addr2 = xml.querySelector("addr2")?.textContent||"";
     const country = xml.querySelector("country")?.textContent||"";
-    return {callsign,name:(fname+" "+lname).trim()||"—",location:(addr2+", "+country).trim()||"—"};
+    return {callsign: callsign.toUpperCase(), name:(fname+" "+lname).trim()||"—", location:(addr2+", "+country).trim()||"—"};
   }
 
-  function attachTooltip(cell, callsign){
-    const data = callDataMap.get(callsign);
-    if(!data) return;
-    let html = '<table class="table table-sm mb-0">';
-    Object.entries(data).forEach(([k,v])=>{
-        html += `<tr><th>${k}</th><td>${v}</td></tr>`;
-    });
-    html += '</table>';
-    cell.setAttribute('data-bs-toggle','tooltip');
-    cell.setAttribute('data-bs-html','true');
-    cell.setAttribute('title', html);
-    bootstrap.Tooltip.getInstance(cell)?.dispose();
-    new bootstrap.Tooltip(cell);
-  }
-
-  function updateDownloadState(){
-    let missing = [];
-    if(!netNameInput.value.trim()) missing.push("Net Name");
-    if(!dtInput.value.trim()) missing.push("Date/Time");
-    if(missing.length){
-      downloadBtn.disabled = true;
-      downloadBtn.setAttribute("title", "Fill in: " + missing.join(", "));
-      bootstrap.Tooltip.getOrCreateInstance(downloadBtn);
+  function updateLoginButton(){
+    if(sessionKey && qrzUsername) {
+      loginBtn.textContent = qrzUsername.toUpperCase();
+      callInput.disabled = lookupBtn.disabled = freqInput.disabled = false;
     } else {
-      downloadBtn.disabled = false;
-      downloadBtn.setAttribute("title","Download CSV");
-      bootstrap.Tooltip.getOrCreateInstance(downloadBtn);
+      loginBtn.textContent = "Login to QRZ";
+      callInput.disabled = lookupBtn.disabled = freqInput.disabled = true;
     }
   }
 
-  netNameInput.addEventListener("input", updateDownloadState);
-  dtInput.addEventListener("input", updateDownloadState);
-  updateDownloadState();
+  function resetLoginState(){
+    sessionKey = null;
+    qrzUsername = null;
+    localStorage.removeItem("qrzSession");
+    localStorage.removeItem("qrzUsername");
+    updateLoginButton();
+    showStatus("QRZ session expired. Please log in.", "error");
+  }
 
-  async function doLookup(callsign){
-    const cs = callsign.trim().toUpperCase();
+  async function doLookup(){
+    const cs = callInput.value.trim().toUpperCase();
+    callInput.value = cs; // auto uppercase
     if(!cs) return;
-    if(freqInput.value && !isValidFrequency(freqInput.value)) { showStatus("Invalid frequency", "error"); return; }
     showStatus(`Looking up ${cs}...`, "info");
-    if(sessionKey){
-      try{
-        const data = await qrzLookupCall(cs);
-        tempLookupData = {...data, freq: freqInput.value};
-        callDataMap.set(cs, data);
-        lookupResultEl.style.display="block";
-        lookupResultEl.textContent = `${data.callsign} - ${data.name}, ${data.location}${freqInput.value?` @ ${freqInput.value} MHz`:''}`;
-        showStatus("", "info");
-      }catch(err){ console.error(err); showStatus("Lookup failed: "+err.message, "error"); }
-    } else {
-      tempLookupData = {callsign: cs, name:"—", location:"—", freq: freqInput.value};
-      lookupResultEl.style.display="block";
-      lookupResultEl.textContent = `${cs} - —, —${freqInput.value?` @ ${freqInput.value} MHz`:''}`;
+    if(!sessionKey){
+      lookupResultEl.textContent = cs;
+      lookupResultEl.style.display = "block";
+      tempLookupData = {callsign: cs, name:"—", location:"—"};
+      return;
+    }
+    try {
+      tempLookupData = await qrzLookupCall(cs);
+      callDataMap.set(cs, tempLookupData);
+      lookupResultEl.textContent = `${tempLookupData.callsign} - ${tempLookupData.name}, ${tempLookupData.location}`;
+      lookupResultEl.style.display = "block";
+      showStatus("", "info");
+    } catch(err){
+      lookupResultEl.style.display = "none";
+      showStatus(`Lookup failed: ${err.message}`, "error");
     }
   }
 
-  lookupBtn.addEventListener("click", ()=>doLookup(callInput.value));
+  // Initialize login from previous session
+  const savedKey = localStorage.getItem("qrzSession");
+  const savedUser = localStorage.getItem("qrzUsername");
+  if(savedKey && savedUser){
+    sessionKey = savedKey;
+    qrzUsername = savedUser;
+    updateLoginButton();
+    (async ()=>{
+      try{
+        await qrzLookupCall(qrzUsername);
+        showStatus("QRZ session validated.", "info");
+      } catch(e){
+        resetLoginState();
+      }
+    })();
+  }
 
-  callInput.addEventListener("keydown", e=>{
-    if(e.key==="Tab"){ e.preventDefault(); doLookup(callInput.value); }
+  // Uppercase input
+  callInput.addEventListener("input", e=>{
+    callInput.value = callInput.value.toUpperCase();
   });
 
+  // Tab key triggers lookup
+  callInput.addEventListener("keydown", e=>{
+    if(e.key==="Tab"){
+      e.preventDefault();
+      doLookup();
+    }
+  });
+
+  lookupBtn.addEventListener("click", doLookup);
+
+  // Enter key adds to table
   callInput.addEventListener("keypress", e=>{
-    if(e.key==="Enter" && tempLookupData){
+    if(e.key === "Enter" && tempLookupData){
+      e.preventDefault();
       const row = document.createElement("tr");
       const now = new Date();
-      const timeStr = now.getHours().toString().padStart(2,"0")+":"+now.getMinutes().toString().padStart(2,"0")+":"+now.getSeconds().toString().padStart(2,"0");
+      const timeStr = now.getHours().toString().padStart(2,"0")+":"+
+                      now.getMinutes().toString().padStart(2,"0")+":"+
+                      now.getSeconds().toString().padStart(2,"0");
       row.innerHTML = `<td>${tempLookupData.callsign}</td>
                        <td>${tempLookupData.name}</td>
                        <td>${tempLookupData.location}</td>
@@ -213,61 +234,10 @@ document.addEventListener("DOMContentLoaded", function() {
                        <td><button class="btn btn-sm btn-danger deleteBtn">Delete</button></td>`;
       tbody.appendChild(row);
       row.querySelector(".deleteBtn").addEventListener("click", ()=>row.remove());
-
-      // Attach QRZ tooltip
-      attachTooltip(row.cells[0], tempLookupData.callsign);
-
       callInput.value = freqInput.value = "";
-      lookupResultEl.style.display="none";
+      lookupResultEl.style.display = "none";
       tempLookupData = null;
     }
-  });
-
-  document.getElementById("resetButton").addEventListener("click", ()=>{
-    tbody.innerHTML = "";
-    lookupResultEl.style.display="none";
-    callInput.value = freqInput.value = "";
-    updateDownloadState();
-  });
-
-  downloadBtn.addEventListener("click", ()=>{
-    if(downloadBtn.disabled) return;
-    let csv = "Call Sign,Name,Location,Check-In Time,Net Name,Net DateTime\n";
-    Array.from(tbody.children).forEach(r=>{
-      const cells = [r.cells[0].textContent,r.cells[1].textContent,r.cells[2].textContent,r.cells[3].textContent];
-      csv += cells.map(c=>`"${c.replace(/"/g,'""')}"`).concat([`"${netNameInput.value}"`,`"${dtInput.value}"`]).join(",")+"\n";
-    });
-    const dt = new Date(dtInput.value);
-    const dtStr = dt.getFullYear().toString()+
-                  (dt.getMonth()+1).toString().padStart(2,"0")+
-                  dt.getDate().toString().padStart(2,"0")+"_"+dt.getHours().toString().padStart(2,"0")+dt.getMinutes().toString().padStart(2,"0");
-    const safeName = netNameInput.value.replace(/[^a-z0-9]/gi,"_");
-    const filename = `${safeName}_${dtStr}.csv`;
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv"}));
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  });
-
-  // Table sorting
-  document.querySelectorAll("#callTable th[data-key]").forEach(th=>{
-    th.addEventListener("click", ()=>{
-      const key = th.dataset.key;
-      const rows = Array.from(tbody.children);
-      const asc = (currentSort.key===key)?!currentSort.asc:true;
-      currentSort = {key, asc};
-      rows.sort((a,b)=>{
-        let aVal="",bVal="";
-        if(key==="time"){ aVal=a.cells[3].textContent; bVal=b.cells[3].textContent; }
-        else if(key==="callsign"){ aVal=a.cells[0].textContent.toUpperCase(); bVal=b.cells[0].textContent.toUpperCase(); }
-        else if(key==="name"){ aVal=a.cells[1].textContent.toUpperCase(); bVal=b.cells[1].textContent.toUpperCase(); }
-        else if(key==="location"){ aVal=a.cells[2].textContent.toUpperCase(); bVal=b.cells[2].textContent.toUpperCase(); }
-        return aVal>bVal? (asc?1:-1) : (aVal<bVal? (asc?-1:1):0);
-      });
-      rows.forEach(r=>tbody.appendChild(r));
-    });
   });
 
   document.getElementById("loginForm").addEventListener("submit", async e=>{
@@ -276,35 +246,38 @@ document.addEventListener("DOMContentLoaded", function() {
     const password = document.getElementById("password").value.trim();
     if(!username || !password) return;
     showStatus("Logging in...", "info");
-    try {
+    try{
       const url=`https://xmldata.qrz.com/xml/current/?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&agent=net_checkins`;
       const resp = await fetch(url);
       const text = await resp.text();
       const keyMatch = text.match(/<Key>(.*?)<\/Key>/);
       if(!keyMatch) throw new Error("Login failed. Check username/password.");
       sessionKey = keyMatch[1];
-      showStatus("Login successful","info");
-
-      // Lookup existing callsigns
-      Array.from(tbody.children).forEach(async row=>{
-        const cs = row.cells[0].textContent;
+      qrzUsername = username;
+      localStorage.setItem("qrzSession", sessionKey);
+      localStorage.setItem("qrzUsername", qrzUsername);
+      updateLoginButton();
+      showStatus("Login successful.", "info");
+      // Lookup previously entered call signs
+      Array.from(tbody.querySelectorAll("tr")).forEach(async row=>{
+        const cs = row.cells[0].textContent.trim();
         try{
           const data = await qrzLookupCall(cs);
-          callDataMap.set(cs,data);
           row.cells[1].textContent = data.name;
           row.cells[2].textContent = data.location;
-          attachTooltip(row.cells[0], cs);
-        } catch(err){ console.error(err); }
+          callDataMap.set(cs,data);
+        } catch(err){ console.warn("Lookup failed after login for", cs, err); }
       });
-    } catch(err){ console.error(err); showStatus(`Login failed: ${err.message}`, "error"); }
+    } catch(err){
+      resetLoginState();
+      showStatus(`Login failed: ${err.message}`, "error");
+    }
   });
-
 });
 </script>
 
 <footer class="bg-light text-center text-muted py-2 fixed-bottom border-top">
-    <small>Copyright &copy; 2025, <a href="https://n2vlv.net" target="_blank">Jeffrey Honig / N2VLV</a> &nbsp; <a href="mailto:n2vlv@honig.net">n2vlv@honig.net</a></small>
+<small>Copyright &copy; 2025, <a href="https://n2vlv.net" target=_blank>Jeffrey Honig / N2VLV</a> &nbsp; <a href="mailto:n2vlv@honig.net">n2vlv@honig.net</a></small>
 </footer>
-
 </body>
 </html>
