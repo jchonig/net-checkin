@@ -341,10 +341,22 @@ document.addEventListener("DOMContentLoaded", function() {
           const val = input.value.trim().toUpperCase();
           if(!val) return;
 
-          if(Array.from(tbody.children).some(r=>r!==row && r.cells[1].textContent.toUpperCase()===val)){
-            alert("Duplicate call sign!");
-            return;
+	  // Duplicate check
+          if (Array.from(tbody.children).some(r => r !== row && r.cells[1].textContent.toUpperCase() === val)) {
+              // Show inline error inside the cell
+              let errEl = row.cells[1].querySelector(".inline-error");
+              if (!errEl) {
+                  errEl = document.createElement("div");
+                  errEl.className = "inline-error text-danger small mt-1";
+                  row.cells[1].appendChild(errEl);
+              }
+              errEl.textContent = "Duplicate call sign!";
+              return;
           }
+
+	  // Remove error if any
+          const errEl = row.cells[1].querySelector(".inline-error");
+          if (errEl) errEl.remove();
 
           let data = xmlCache[val];
           if(!data && sessionKey){
@@ -426,7 +438,17 @@ document.addEventListener("DOMContentLoaded", function() {
     return td;
   }
 
+  function isDuplicateCallsign(val) {
+    return Array.from(tbody.children).some(r => r.cells[1].textContent.toUpperCase() === val);
+  }
+
   function addRowToTable(data, trafficState=0){
+    if (Array.from(tbody.children).some(r => r.cells[1].textContent.toUpperCase() === data.callsign.toUpperCase())) {
+        showStatus(`Duplicate call sign: ${data.callsign}`, "error");
+        return;
+    }
+    showStatus("");
+
     const row=document.createElement("tr");
 
     const imgCell = document.createElement("td");
@@ -448,7 +470,7 @@ document.addEventListener("DOMContentLoaded", function() {
     row.appendChild(createActionButtons(row,data.callsign));
     tbody.appendChild(row);
 
-      saveData();
+    saveData();
   }
 
   function loadData(){
@@ -556,6 +578,12 @@ document.addEventListener("DOMContentLoaded", function() {
       e.preventDefault();
       const val = callInput.value.trim().toUpperCase();
       if(!val) return;
+
+      if(isDuplicateCallsign(val)){
+        showStatus(`Duplicate call sign: ${val}`, "error");
+        return;
+      }
+      showStatus(""); // clear any previous status
 
       let data = xmlCache[val];
       if(!data && sessionKey){
