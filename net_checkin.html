@@ -464,7 +464,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     const now=new Date();
     const timeStr=now.toLocaleTimeString("en-US",{hour12:false});
-    row.innerHTML += `<td>${data.callsign}</td><td>${data.name}</td><td>${data.location}</td><td>${timeStr}</td>`;
+    row.innerHTML += `<td><a href="https://www.qrz.com/db/${data.callsign}" target=_blank>${data.callsign}</a></td><td>${data.name}</td><td>${data.location}</td><td>${timeStr}</td>`;
     const trafficCell = createTrafficCell(trafficState);
     row.appendChild(trafficCell);
     row.appendChild(createActionButtons(row,data.callsign));
@@ -488,7 +488,7 @@ document.addEventListener("DOMContentLoaded", function() {
           imgCell.appendChild(img);
         }
         row.appendChild(imgCell);
-        row.innerHTML += `<td>${c.callsign}</td><td>${c.name}</td><td>${c.location}</td><td>${c.time}</td>`;
+        row.innerHTML += `<td><a href="https://www.qrz.com/db/${c.callsign}" target=_blank>${c.callsign}</a></td><td>${c.name}</td><td>${c.location}</td><td>${c.time}</td>`;
         const trafficCell = createTrafficCell();
         trafficCell.setTrafficValue(c.traffic || "-");
         row.appendChild(trafficCell);
