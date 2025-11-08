@@ -25,6 +25,10 @@ layout: null
 	  border-color: #e6b800;
 	  box-shadow: 0 0 5px rgba(230, 184, 0, 0.6);
       }
+      #downloadWrapper {
+	  display: inline-flex;
+	  align-items: center;
+      }
     </style>
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
@@ -37,18 +41,22 @@ layout: null
 	  <input type="text" id="netName" class="form-control form-control-sm me-1" placeholder="Net Name">
 	  <input type="datetime-local" id="netDateTime" class="form-control form-control-sm me-1">
 	  <input type="text" id="frequencyInput" class="form-control form-control-sm me-1" placeholder="Frequency (MHz)">
-	  <button id="resetButton" type="button" class="btn btn-secondary btn-sm me-1">Reset</button>
+	  <button id="resetButton" type="button" class="btn
+							btn-secondary
+							btn-sm me-1">
+	    <i class="bi bi-trash"></i>Clear Input
+	  </button>
 	  <span id="downloadWrapper" data-bs-toggle="tooltip" data-bs-placement="top" title="">
-            <button id="downloadCSV" type="button" class="btn btn-success btn-sm">Download CSV</button>
+            <button id="downloadCSV" type="button" class="btn
+							  btn-success
+							  btn-sm">
+	      <i class="bi bi-download"></i>Download CSV
+	    </button>
 	  </span>
-	</form>
-
-	<!-- Refresh QRZ Button -->
-	<div class="d-flex align-items-center me-1">
 	  <button id="refreshButton" type="button" class="btn btn-outline-primary btn-sm me-1" disabled>
             <i class="bi bi-arrow-clockwise"></i> Refresh QRZ
 	  </button>
-	</div>
+	</form>
 
 	<!-- Help + QRZ Login -->
 	<div class="d-flex ms-auto align-items-center">
