@@ -182,11 +182,21 @@ document.addEventListener("DOMContentLoaded", function() {
 
   let tooltip = new bootstrap.Tooltip(downloadWrapper);
 
-  function setDefaultNetTime(){
-    const now = new Date();
-    now.setMinutes(0,0,0);
-    now.setHours(now.getHours()+1);
-    dtInput.value = now.toISOString().slice(0,16);
+  function setDefaultNetTime() {
+      const now = new Date();
+      if (now.getMinutes() !== 0) {
+	  now.setHours(now.getHours() + 1);
+      }
+      now.setMinutes(0, 0, 0);
+
+      // Build a local datetime string in the form YYYY-MM-DDTHH:mm
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+
+      dtInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
   }
   setDefaultNetTime();
 
