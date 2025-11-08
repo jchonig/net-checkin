@@ -357,7 +357,7 @@ layout: null
 		  const cell = row.cells[1];
 		  const oldVal = cell.textContent;
 		  const input = document.createElement("input");
-		  input.type="text";
+		  input.type = "text";
 		  input.value = oldVal;
 		  input.className = "form-control form-control-sm";
 		  cell.textContent = "";
@@ -373,18 +373,27 @@ layout: null
 				  const data = await qrzLookupCall(val);
 				  row.cells[2].textContent = data.name;
 				  row.cells[3].textContent = data.location;
-				  xmlCache[val] = data;
+				  xmlCache[data.callsign] = data;  // store by primary callsign
 				  tempLookupData = data;
 			      }catch(err){ alert("Lookup failed"); }
 			  }
 		      } else if(e.key==="Enter" || (e.shiftKey && e.key==="Enter")){
 			  e.preventDefault();
-			  const val = input.value.trim().toUpperCase();
-			  if(!val) return;
+			  const typedVal = input.value.trim().toUpperCase();
+			  if(!typedVal) return;
 
-			  // Duplicate check
-			  if (Array.from(tbody.children).some(r => r !== row && r.cells[1].textContent.toUpperCase() === val)) {
-			      // Show inline error inside the cell
+			  let data = xmlCache[typedVal];
+			  if(!data && sessionKey){
+			      try {
+				  data = await qrzLookupCall(typedVal);
+				  xmlCache[data.callsign] = data;
+			      } catch(err) { alert("Lookup failed"); return; }
+			  }
+
+			  const primaryCall = data?.callsign || typedVal; // use primary call
+
+			  // Duplicate check against primary callsign
+			  if (Array.from(tbody.children).some(r => r !== row && r.cells[1].textContent.toUpperCase() === primaryCall)) {
 			      let errEl = row.cells[1].querySelector(".inline-error");
 			      if (!errEl) {
 				  errEl = document.createElement("div");
@@ -399,16 +408,8 @@ layout: null
 			  const errEl = row.cells[1].querySelector(".inline-error");
 			  if (errEl) errEl.remove();
 
-			  let data = xmlCache[val];
-			  if(!data && sessionKey){
-			      try{
-				  data = await qrzLookupCall(val);
-				  xmlCache[val] = data;
-				  tempLookupData = data;
-			      }catch(err){ alert("Lookup failed"); return; }
-			  }
-
-			  cell.innerHTML = addLink(val);
+			  // Update row with primary call
+			  cell.innerHTML = addLink(primaryCall);
 			  row.cells[2].textContent = data?.name || "—";
 			  row.cells[3].textContent = data?.location || "—";
 
@@ -480,18 +481,22 @@ layout: null
 	  }
 
 	  function isDuplicateCallsign(val) {
-	      return Array.from(tbody.children).some(r => r.cells[1].textContent.toUpperCase() === val);
+	      const upperVal = val.toUpperCase();
+	      return Array.from(tbody.children).some(r => r.cells[1].textContent.toUpperCase() === upperVal);
 	  }
 
 	  function addRowToTable(data, trafficState=0){
-	      if (Array.from(tbody.children).some(r => r.cells[1].textContent.toUpperCase() === data.callsign.toUpperCase())) {
-		  showStatus(`Duplicate call sign: ${data.callsign}`, "error");
+	      const primaryCall = data.callsign.toUpperCase();
+
+	      if (Array.from(tbody.children).some(r => r.cells[1].textContent.toUpperCase() === primaryCall)) {
+		  showStatus(`Duplicate call sign: ${primaryCall}`, "error");
 		  return;
 	      }
 	      showStatus("");
 
-	      const row=document.createElement("tr");
+	      const row = document.createElement("tr");
 
+	      // Image cell
 	      const imgCell = document.createElement("td");
 	      if(data.imgSrc){
 		  const img = document.createElement("img");
@@ -503,14 +508,16 @@ layout: null
 	      }
 	      row.appendChild(imgCell);
 
-	      const now=new Date();
-	      const timeStr=now.toLocaleTimeString("en-US",{hour12:false});
-	      row.innerHTML += `<td>${addLink(data.callsign)}</td><td>${data.name}</td><td>${data.location}</td><td>${timeStr}</td>`;
+	      const now = new Date();
+	      const timeStr = now.toLocaleTimeString("en-US", {hour12:false});
+	      row.innerHTML += `<td>${addLink(primaryCall)}</td><td>${data.name}</td><td>${data.location}</td><td>${timeStr}</td>`;
+
 	      const trafficCell = createTrafficCell(trafficState);
 	      row.appendChild(trafficCell);
-	      row.appendChild(createActionButtons(row,data.callsign));
-	      tbody.appendChild(row);
 
+	      row.appendChild(createActionButtons(row, primaryCall));
+
+	      tbody.appendChild(row);
 	      saveData();
 	  }
 
@@ -598,12 +605,18 @@ layout: null
 	      const resp = await fetch(url);
 	      const text = await resp.text();
 	      const xml = new DOMParser().parseFromString(text, "application/xml");
+
 	      if(xml.querySelector("Session > Error")){
-		  sessionKey = null; sessionUser = null; localStorage.removeItem("qrzSession");
+		  sessionKey = null; sessionUser = null;
+		  localStorage.removeItem("qrzSession");
 		  updateLoginDisplay();
 		  updateRefreshButton();
 		  throw new Error("QRZ session invalid. Logged out.");
 	      }
+
+	      // Primary callsign from <call>
+	      const primaryCall = xml.querySelector("Callsign > call")?.textContent?.toUpperCase() || callsign.toUpperCase();
+
 	      const nickname = xml.querySelector("nickname")?.textContent||"";
 	      const fname = xml.querySelector("fname")?.textContent||"";
 	      const lname = xml.querySelector("name")?.textContent||"";
@@ -615,8 +628,9 @@ layout: null
 	      } else {
 		  fullname = `${titleCase(fname+" "+lname).trim() || "-"}`
 	      }
+
 	      return {
-		  callsign,
+		  callsign: primaryCall,  // store primary callsign
 		  name: fullname,
 		  location: `${titleCase(addr2)}, ${state}`.trim()||"—",
 		  xmlData: text,
@@ -664,6 +678,44 @@ layout: null
 	  callInput.addEventListener("keydown", async e => {
 	      if(e.key==="Tab" || e.key==="Enter"){
 		  e.preventDefault();
+		  const typed = callInput.value.trim().toUpperCase();
+		  if(!typed) return;
+
+		  let data = xmlCache[typed];
+		  if(!data && sessionKey){
+		      try{ data = await qrzLookupCall(typed); xmlCache[typed]=data; }catch(err){ alert("Lookup failed"); return; }
+		  }
+
+		  const primaryCall = data.callsign;  // primary call from XML
+
+		  if(isDuplicateCallsign(primaryCall)){
+		      showStatus(`Duplicate call sign: ${primaryCall}`, "error");
+		      return;
+		  }
+		  showStatus("");
+
+		  lookupResultEl.textContent = data ? `${primaryCall} - ${data.name} (${data.location})` : typed;
+		  showLookupResult();
+
+		  if(e.key==="Enter"){
+		      const shift = e.shiftKey;
+		      addRowToTable({
+			  callsign: primaryCall,
+			  name: data?.name || "—",
+			  location: data?.location || "—",
+			  imgSrc: data?.imgSrc || ""
+		      }, shift ? 1 : 0);
+
+		      callInput.value = "";
+		      hideLookupResult();
+		      setDownloadTooltip();
+		  }
+	      } else if(e.key==="Escape") hideLookupResult();
+	  });
+
+	  callInput.addEventListener("keydown", async e => {
+	      if(e.key==="Tab" || e.key==="Enter"){
+		  e.preventDefault();
 		  const val = callInput.value.trim().toUpperCase();
 		  if(!val) return;
 
@@ -683,7 +735,7 @@ layout: null
 		  if(e.key==="Enter"){
 		      const shift = e.shiftKey;
 		      addRowToTable({
-			  callsign: val,
+			  callsign: primaryCall,
 			  name: data?.name || "—",
 			  location: data?.location || "—",
 			  imgSrc: data?.imgSrc || ""
@@ -714,7 +766,7 @@ layout: null
 	      let data = xmlCache[val];
 	      const trafficState = e.shiftKey ? 1 : 0; // Shift+click = traffic
 	      addRowToTable({
-		  callsign: val,
+		  callsign: primaryCall,
 		  name: data?.name || "—",
 		  location: data?.location || "—",
 		  imgSrc: data?.imgSrc || ""
@@ -733,7 +785,7 @@ layout: null
 	      let data = xmlCache[val];
 	      const trafficState = e.shiftKey ? 1 : 0;
 	      addRowToTable({
-		  callsign: val,
+		  callsign: primaryCall,
 		  name: data?.name || "—",
 		  location: data?.location || "—",
 		  imgSrc: data?.imgSrc || ""
