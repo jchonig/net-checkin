@@ -562,13 +562,14 @@ document.addEventListener("DOMContentLoaded", function() {
     const fname = xml.querySelector("fname")?.textContent||"";
     const lname = xml.querySelector("name")?.textContent||"";
     const addr2 = xml.querySelector("addr2")?.textContent||"";
+    const state = xml.querySelector("state")?.textContent||"";
     const country = xml.querySelector("country")?.textContent||"";
     return {
-      callsign,
-      name: (fname+" "+lname).trim()||"—",
-      location: (addr2+", "+country).trim()||"—",
-      xmlData: text,
-      imgSrc: xml.querySelector("image")?.textContent || xml.querySelector("photo")?.textContent || ""
+	callsign,
+	name: (fname+" "+lname).trim()||"—",
+	location: `${addr2}, ${state}`.trim()||"—",
+	xmlData: text,
+	imgSrc: xml.querySelector("image")?.textContent || xml.querySelector("photo")?.textContent || ""
     };
   }
 
