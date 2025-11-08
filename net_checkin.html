@@ -604,13 +604,20 @@ layout: null
 		  updateRefreshButton();
 		  throw new Error("QRZ session invalid. Logged out.");
 	      }
+	      const nickname = xml.querySelector("nickname")?.textContent||"";
 	      const fname = xml.querySelector("fname")?.textContent||"";
 	      const lname = xml.querySelector("name")?.textContent||"";
 	      const addr2 = xml.querySelector("addr2")?.textContent||"";
 	      const state = xml.querySelector("state")?.textContent||"";
+	      var fullname;
+	      if (nickname) {
+		  fullname = `${titleCase(nickname)} (${titleCase(fname+" "+lname).trim()})`
+	      } else {
+		  fullname = `${titleCase(fname+" "+lname).trim() || "-"}`
+	      }
 	      return {
 		  callsign,
-		  name: titleCase(fname+" "+lname).trim()||"—",
+		  name: fullname,
 		  location: `${titleCase(addr2)}, ${state}`.trim()||"—",
 		  xmlData: text,
 		  imgSrc: xml.querySelector("image")?.textContent || xml.querySelector("photo")?.textContent || ""
