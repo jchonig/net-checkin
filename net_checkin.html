@@ -29,7 +29,7 @@ th { cursor: pointer; }
       <input type="text" id="netName" class="form-control form-control-sm me-1" placeholder="Net Name">
       <input type="datetime-local" id="netDateTime" class="form-control form-control-sm me-1">
       <input type="text" id="frequencyInput" class="form-control form-control-sm me-1" placeholder="Frequency (MHz)">
-      <button id="resetButton" type="button" class="btn btn-secondary btn-sm me-1">Clear all data</button>
+      <button id="resetButton" type="button" class="btn btn-secondary btn-sm me-1">Reset</button>
       <span id="downloadWrapper" data-bs-toggle="tooltip" data-bs-placement="top" title="">
         <button id="downloadCSV" type="button" class="btn btn-success btn-sm">Download CSV</button>
       </span>
@@ -367,7 +367,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }catch(err){ alert("Lookup failed"); return; }
           }
 
-          cell.textContent = val;
+          cell.innerHTML = addLink(val);
           row.cells[2].textContent = data?.name || "—";
           row.cells[3].textContent = data?.location || "—";
 
@@ -464,7 +464,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     const now=new Date();
     const timeStr=now.toLocaleTimeString("en-US",{hour12:false});
-    row.innerHTML += `<td><a href="https://www.qrz.com/db/${data.callsign}" target=_blank>${data.callsign}</a></td><td>${data.name}</td><td>${data.location}</td><td>${timeStr}</td>`;
+    row.innerHTML += `<td>${addLink(data.callsign)}</td><td>${data.name}</td><td>${data.location}</td><td>${timeStr}</td>`;
     const trafficCell = createTrafficCell(trafficState);
     row.appendChild(trafficCell);
     row.appendChild(createActionButtons(row,data.callsign));
@@ -488,7 +488,7 @@ document.addEventListener("DOMContentLoaded", function() {
           imgCell.appendChild(img);
         }
         row.appendChild(imgCell);
-        row.innerHTML += `<td><a href="https://www.qrz.com/db/${c.callsign}" target=_blank>${c.callsign}</a></td><td>${c.name}</td><td>${c.location}</td><td>${c.time}</td>`;
+        row.innerHTML += `<td>${addLink(c.callsign)}</td><td>${c.name}</td><td>${c.location}</td><td>${c.time}</td>`;
         const trafficCell = createTrafficCell();
         trafficCell.setTrafficValue(c.traffic || "-");
         row.appendChild(trafficCell);
@@ -563,11 +563,10 @@ document.addEventListener("DOMContentLoaded", function() {
     const lname = xml.querySelector("name")?.textContent||"";
     const addr2 = xml.querySelector("addr2")?.textContent||"";
     const state = xml.querySelector("state")?.textContent||"";
-    const country = xml.querySelector("country")?.textContent||"";
     return {
 	callsign,
-	name: (fname+" "+lname).trim()||"—",
-	location: `${addr2}, ${state}`.trim()||"—",
+	name: titleCase(fname+" "+lname).trim()||"—",
+	location: `${titleCase(addr2)}, ${state}`.trim()||"—",
 	xmlData: text,
 	imgSrc: xml.querySelector("image")?.textContent || xml.querySelector("photo")?.textContent || ""
     };
@@ -704,6 +703,16 @@ document.addEventListener("DOMContentLoaded", function() {
   setDownloadTooltip();
 });
 
+function addLink(callsign) {
+    return `<a href="https://www.qrz.com/db/${callsign}" target=_blank>${callsign}</a>`;
+}
+const titleCase = (str) => {
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
 </script>
 
 <footer class="bg-light text-center text-muted py-2 fixed-bottom border-top">
