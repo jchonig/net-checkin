@@ -648,17 +648,23 @@ layout: null
 	          const lname = xml.querySelector("name")?.textContent||"";
 	          const addr2 = xml.querySelector("addr2")?.textContent||"";
 	          const state = xml.querySelector("state")?.textContent||"";
+                  const country = xml.querySelector("country")?.textContent||"";
 	          var fullname;
 	          if (nickname) {
 		      fullname = `${titleCase(nickname)} (${titleCase(fname+" "+lname).trim()})`
 	          } else {
 		      fullname = `${titleCase(fname+" "+lname).trim() || "-"}`
 	          }
-
+                  var location;
+                  if (country && country !== "United States") {
+                      location = `${titleCase(addr2)}, ${state} ${country}`.trim()||"—";
+                  } else {
+                      location = `${titleCase(addr2)}, ${state}`.trim()||"—";
+                  }
 		  const data = {
 		      callsign: primaryCall,
 		      name: fullname,
-		      location: `${titleCase(addr2)}, ${state}`.trim()||"—",
+		      location: location,
                       xmlData: text,
 		      imgSrc: xml.querySelector("image")?.textContent || xml.querySelector("photo")?.textContent || ""
 		  };
