@@ -612,43 +612,65 @@ layout: null
 	      callInput.disabled = lookupBtn.disabled = freqInput.disabled = false;
 	  }
 
-	  async function qrzLookupCall(callsign){
-	      if(!sessionKey) throw new Error("Not logged in");
-	      const url = `https://xmldata.qrz.com/xml/current/?s=${encodeURIComponent(sessionKey)}&callsign=${encodeURIComponent(callsign)}`;
-	      const resp = await fetch(url);
-	      const text = await resp.text();
-	      const xml = new DOMParser().parseFromString(text, "application/xml");
+	  async function qrzLookupCall(callsign) {
+	      const url = `https://xmldata.qrz.com/xml/current/?s=${sessionKey};callsign=${encodeURIComponent(callsign)}`;
 
-	      if(xml.querySelector("Session > Error")){
-		  sessionKey = null; sessionUser = null;
-		  localStorage.removeItem("qrzSession");
-		  updateLoginDisplay();
-		  updateRefreshButton();
-		  throw new Error("QRZ session invalid. Logged out.");
+	      try {
+		  const resp = await fetch(url);
+		  if (!resp.ok) {
+		      throw new Error("NETWORK");
+		  }
+
+		  const text = await resp.text();
+
+		  // Parse QRZ XML response
+		  const parser = new DOMParser();
+		  const xml = parser.parseFromString(text, "application/xml");
+
+		  // Check for session or login errors
+		  const errorEl = xml.querySelector("Error");
+		  if (errorEl) {
+		      const errMsg = errorEl.textContent || "";
+		      if (errMsg.match(/Session Key Error|Invalid session/i)) {
+			  throw new Error("INVALID_SESSION");
+		      } else if (errMsg.match(/not found/i)) {
+			  throw new Error("NOT_FOUND");
+		      } else {
+			  throw new Error("LOOKUP_ERROR");
+		      }
+		  }
+
+		  // Extract fields (simplified)
+                  const primaryCall = xml.querySelector("Callsign > call")?.textContent?.toUpperCase() || callsign.toUpperCase();
+
+	          const nickname = xml.querySelector("nickname")?.textContent||"";
+	          const fname = xml.querySelector("fname")?.textContent||"";
+	          const lname = xml.querySelector("name")?.textContent||"";
+	          const addr2 = xml.querySelector("addr2")?.textContent||"";
+	          const state = xml.querySelector("state")?.textContent||"";
+	          var fullname;
+	          if (nickname) {
+		      fullname = `${titleCase(nickname)} (${titleCase(fname+" "+lname).trim()})`
+	          } else {
+		      fullname = `${titleCase(fname+" "+lname).trim() || "-"}`
+	          }
+
+		  const data = {
+		      callsign: primaryCall,
+		      name: fullname,
+		      location: `${titleCase(addr2)}, ${state}`.trim()||"—",
+                      xmlData: text,
+		      imgSrc: xml.querySelector("image")?.textContent || xml.querySelector("photo")?.textContent || ""
+		  };
+
+		  return data;
+	      } catch (err) {
+		  if (["NOT_FOUND", "INVALID_SESSION", "LOOKUP_ERROR", "NETWORK"].includes(err.message)) {
+		      throw err; // rethrow known types
+		  } else {
+		      throw new Error("NETWORK");
+		  }
 	      }
-
-	      // Primary callsign from <call>
-	      const primaryCall = xml.querySelector("Callsign > call")?.textContent?.toUpperCase() || callsign.toUpperCase();
-
-	      const nickname = xml.querySelector("nickname")?.textContent||"";
-	      const fname = xml.querySelector("fname")?.textContent||"";
-	      const lname = xml.querySelector("name")?.textContent||"";
-	      const addr2 = xml.querySelector("addr2")?.textContent||"";
-	      const state = xml.querySelector("state")?.textContent||"";
-	      var fullname;
-	      if (nickname) {
-		  fullname = `${titleCase(nickname)} (${titleCase(fname+" "+lname).trim()})`
-	      } else {
-		  fullname = `${titleCase(fname+" "+lname).trim() || "-"}`
-	      }
-
-	      return {
-		  callsign: primaryCall,  // store primary callsign
-		  name: fullname,
-		  location: `${titleCase(addr2)}, ${state}`.trim()||"—",
-		  xmlData: text,
-		  imgSrc: xml.querySelector("image")?.textContent || xml.querySelector("photo")?.textContent || ""
-	      };
 	  }
 
 	  refreshBtn.addEventListener("click", async () => {
@@ -687,114 +709,164 @@ layout: null
 	      showStatus("All data refreshed from QRZ.", "info");
 	  });
 
-	  // --- Main input key handling ---
-	  callInput.addEventListener("keydown", async e => {
-	      const val = callInput.value.trim().toUpperCase();
-	      if(!val) return;
+	// --- Main input key handling ---
+	callInput.addEventListener("keydown", async e => {
+	    if (e.key === "Escape"){
+	        hideLookupResult();
+	        callInput.value = "";
+	        showStatus("");
+         	return;
+            }
+	    const val = callInput.value.trim().toUpperCase();
+	    if(!val) return;
 
-	      if(e.key === "Tab"){
-		  e.preventDefault();
-		  // Only perform lookup on Tab
-		  let data = xmlCache[val];
-		  if(!data && sessionKey){
-		      try {
-			  data = await qrzLookupCall(val);
-			  xmlCache[val] = data;
-		      } catch(err){
-			  alert("Lookup failed");
-			  return;
-		      }
-		  }
+	    if(e.key === "Tab"){
+		e.preventDefault();
+		// Only perform lookup on Tab
+		await doLookup(val);
+	    } else if(e.key === "Enter"){
+		e.preventDefault();
+		await addCall(val, e.shiftKey ? 1 : 0);
+	    }
+	});
 
-		  const primaryCall = data?.callsign || val;
-		  if(isDuplicateCallsign(primaryCall)){
-		      showStatus(`Duplicate call sign: ${primaryCall}`, "error");
-		      return;
-		  } else {
-		      showStatus(""); // clear any previous status
-		  }
+	// Lookup Result click handler
+	lookupResultEl.addEventListener("click", async (e) => {
+	    const val = callInput.value.trim().toUpperCase();
+	    if (!val) return;
 
-		  // Show lookup result
-		  lookupResultEl.textContent = data ? `${primaryCall} - ${data.name} (${data.location})` : val;
-		  showLookupResult();
+	    await addCall(val, e.shiftKey ? 1 : 0);
+	});
 
-	      } else if(e.key === "Enter"){
-		  e.preventDefault();
-		  // Add the callsign to table using cached data
-		  let data = xmlCache[val];  // may be undefined if user didn't Tab first
-		  const primaryCall = data?.callsign || val;
+	// Add Button shift handling
+	addBtn.addEventListener("click", async (e) => {
+	    const val = callInput.value.trim().toUpperCase();
+	    if (!val) return;
 
-		  if(isDuplicateCallsign(primaryCall)){
-		      showStatus(`Duplicate call sign: ${primaryCall}`, "error");
-		      return;
-		  }
+	    await addCall(val, e.shiftKey ? 1 : 0);
+	});
 
-		  const trafficState = e.shiftKey ? 1 : 0; // Shift+Enter = traffic
-		  addRowToTable({
-		      callsign: primaryCall,
-		      name: data?.name || "—",
-		      location: data?.location || "—",
-		      imgSrc: data?.imgSrc || ""
-		  }, trafficState);
+	// --- Helper: Perform lookup and show result ---
+	async function doLookup(val) {
+	    let data = xmlCache[val];
+	    if (!data && sessionKey) {
+		try {
+		    data = await qrzLookupCall(val);
+		    xmlCache[val] = data;
+		} catch (err) {
+		    if (err.message === "NOT_FOUND") {
+			showStatus(`Call sign ${val} not found.`, "error");
+			hideLookupResult();
+			return;
+		    } else if (err.message === "INVALID_SESSION") {
+			alert("Your QRZ session has expired. Please log in again.");
+			logoutUser(); // your existing logout handler
+			return;
+		    } else {
+			showStatus("Lookup failed due to a network or server error.", "error");
+			console.error("Lookup error:", err);
+			return;
+		    }
+		}
+	    }
 
-		  callInput.value = "";
-		  hideLookupResult();
-		  setDownloadTooltip();
-		  showStatus(""); // clear any previous status
+	    const primaryCall = data?.callsign || val;
+	    if (isDuplicateCallsign(primaryCall)) {
+		showStatus(`Duplicate call sign: ${primaryCall}`, "error");
+		return;
+	    }
 
-	      } else if(e.key === "Escape"){
-		  hideLookupResult();
-	      }
-	  });
+	    showStatus("");
+	    lookupResultEl.textContent = data
+		? `${primaryCall} - ${data.name} (${data.location})`
+		: val;
+	    showLookupResult();
+	}
 
-	  lookupBtn.addEventListener("click", async ()=>{
-	      const val = callInput.value.trim().toUpperCase();
-	      if(!val) return;
-	      let data = xmlCache[val];
-	      if(!data && sessionKey){
-		  try{ data = await qrzLookupCall(val); xmlCache[val]=data; }catch(err){ alert("Lookup failed"); return; }
-	      }
-	      lookupResultEl.textContent = data ? `${data.callsign} - ${data.name} (${data.location})` : val;
-	      showLookupResult();
-	  });
+	// --- Helper: Add call to table, performing lookup if needed ---
+	async function addCall(val, trafficState = 0) {
+	    let data = xmlCache[val];
 
-	  // Lookup Result click handler
-	  lookupResultEl.addEventListener("click", (e) => {
-	      const val = callInput.value.trim().toUpperCase();
-	      if (!val) return;
+	    // If no lookup yet, fetch in background
+	    if (!data && sessionKey) {
+		try {
+		    data = await qrzLookupCall(val);
+		    xmlCache[val] = data;
+		} catch (err) {
+		    if (err.message === "NOT_FOUND") {
+			showStatus(`Call sign ${val} not found.`, "error");
+			hideLookupResult();
+			return;
+		    } else if (err.message === "INVALID_SESSION") {
+			alert("Your QRZ session has expired. Please log in again.");
+			logoutUser(); // assumes your logout function
+			return;
+		    } else {
+			showStatus("Lookup failed due to a network or server error.", "error");
+			console.error("Lookup error:", err);
+			return;
+		    }
+		}
+	    }
 
-	      let data = xmlCache[val];
-	      const trafficState = e.shiftKey ? 1 : 0; // Shift+click = traffic
-	      addRowToTable({
-		  callsign: data?.callsign || val,
-		  name: data?.name || "—",
-		  location: data?.location || "—",
-		  imgSrc: data?.imgSrc || ""
-	      }, trafficState);
+	    const primaryCall = data?.callsign || val;
+	    if (isDuplicateCallsign(primaryCall)) {
+		showStatus(`Duplicate call sign: ${primaryCall}`, "error");
+		return;
+	    }
 
-	      callInput.value = "";
-	      hideLookupResult();
-	      setDownloadTooltip();
-	  });
+	    addRowToTable({
+		callsign: primaryCall,
+		name: data?.name || "—",
+		location: data?.location || "—",
+		imgSrc: data?.imgSrc || ""
+	    }, trafficState);
 
-	  // Add Button shift handling
-	  addBtn.addEventListener("click", (e) => {
-	      const val = callInput.value.trim().toUpperCase();
-	      if (!val) return;
+	    callInput.value = "";
+	    hideLookupResult();
+	    setDownloadTooltip();
+	    showStatus("");
+	}
 
-	      let data = xmlCache[val];
-	      const trafficState = e.shiftKey ? 1 : 0;
-	      addRowToTable({
-		  callsign: data?.callsign || val,
-		  name: data?.name || "—",
-		  location: data?.location || "—",
-		  imgSrc: data?.imgSrc || ""
-	      }, trafficState);
+	lookupBtn.addEventListener("click", async () => {
+	    const val = callInput.value.trim().toUpperCase();
+	    if (!val) return;
 
-	      callInput.value = "";
-	      hideLookupResult();
-	      setDownloadTooltip();
-	  });
+	    let data = xmlCache[val];
+	    if (!data && sessionKey) {
+		try {
+		    data = await qrzLookupCall(val);
+		    xmlCache[val] = data;
+		} catch (err) {
+		    if (err.message === "NOT_FOUND") {
+			showStatus(`Call sign ${val} not found.`, "error");
+			hideLookupResult();
+			return;
+		    } else if (err.message === "INVALID_SESSION") {
+			alert("Your QRZ session has expired. Please log in again.");
+			logoutUser(); // assumes your logout handler exists
+			return;
+		    } else {
+			showStatus("Lookup failed due to a network or server error.", "error");
+			console.error("Lookup error:", err);
+			return;
+		    }
+		}
+	    }
+
+	    const primaryCall = data?.callsign || val;
+	    if (isDuplicateCallsign(primaryCall)) {
+		showStatus(`Duplicate call sign: ${primaryCall}`, "error");
+		return;
+	    } else {
+		showStatus("");
+	    }
+
+	    lookupResultEl.textContent = data
+		? `${primaryCall} - ${data.name} (${data.location})`
+		: val;
+	    showLookupResult();
+	});
 
 	  // --- Table Sorting including Traffic and check-in time with direction indicators ---
 	  const headers = document.querySelectorAll("#callTable th[data-key]");
