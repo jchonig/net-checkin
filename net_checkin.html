@@ -651,7 +651,7 @@ layout: null
                   const country = xml.querySelector("country")?.textContent||"";
 	          var fullname;
 	          if (nickname) {
-		      fullname = `${titleCase(nickname)} (${titleCase(fname+" "+lname).trim()})`
+		      fullname = `${titleCase(fname)} \"${titleCase(nickname)}\" ${titleCase(lname)}`
 	          } else {
 		      fullname = `${titleCase(fname+" "+lname).trim() || "-"}`
 	          }
@@ -661,6 +661,7 @@ layout: null
                   } else {
                       location = `${titleCase(addr2)}, ${state}`.trim()||"—";
                   }
+
 		  const data = {
 		      callsign: primaryCall,
 		      name: fullname,
