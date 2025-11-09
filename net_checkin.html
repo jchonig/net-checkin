@@ -689,75 +689,62 @@ layout: null
 
 	  // --- Main input key handling ---
 	  callInput.addEventListener("keydown", async e => {
-	      if(e.key==="Tab" || e.key==="Enter"){
-		  e.preventDefault();
-		  const typed = callInput.value.trim().toUpperCase();
-		  if(!typed) return;
+	      const val = callInput.value.trim().toUpperCase();
+	      if(!val) return;
 
-		  let data = xmlCache[typed];
+	      if(e.key === "Tab"){
+		  e.preventDefault();
+		  // Only perform lookup on Tab
+		  let data = xmlCache[val];
 		  if(!data && sessionKey){
-		      try{ data = await qrzLookupCall(typed); xmlCache[typed]=data; }catch(err){ alert("Lookup failed"); return; }
+		      try {
+			  data = await qrzLookupCall(val);
+			  xmlCache[val] = data;
+		      } catch(err){
+			  alert("Lookup failed");
+			  return;
+		      }
 		  }
 
-		  const primaryCall = data.callsign;  // primary call from XML
+		  const primaryCall = data?.callsign || val;
+		  if(isDuplicateCallsign(primaryCall)){
+		      showStatus(`Duplicate call sign: ${primaryCall}`, "error");
+		      return;
+		  } else {
+		      showStatus(""); // clear any previous status
+		  }
+
+		  // Show lookup result
+		  lookupResultEl.textContent = data ? `${primaryCall} - ${data.name} (${data.location})` : val;
+		  showLookupResult();
+
+	      } else if(e.key === "Enter"){
+		  e.preventDefault();
+		  // Add the callsign to table using cached data
+		  let data = xmlCache[val];  // may be undefined if user didn't Tab first
+		  const primaryCall = data?.callsign || val;
 
 		  if(isDuplicateCallsign(primaryCall)){
 		      showStatus(`Duplicate call sign: ${primaryCall}`, "error");
 		      return;
 		  }
-		  showStatus("");
 
-		  lookupResultEl.textContent = data ? `${primaryCall} - ${data.name} (${data.location})` : typed;
-		  showLookupResult();
+		  const trafficState = e.shiftKey ? 1 : 0; // Shift+Enter = traffic
+		  addRowToTable({
+		      callsign: primaryCall,
+		      name: data?.name || "—",
+		      location: data?.location || "—",
+		      imgSrc: data?.imgSrc || ""
+		  }, trafficState);
 
-		  if(e.key==="Enter"){
-		      const shift = e.shiftKey;
-		      addRowToTable({
-			  callsign: primaryCall,
-			  name: data?.name || "—",
-			  location: data?.location || "—",
-			  imgSrc: data?.imgSrc || ""
-		      }, shift ? 1 : 0);
-
-		      callInput.value = "";
-		      hideLookupResult();
-		      setDownloadTooltip();
-		  }
-	      } else if(e.key==="Escape") hideLookupResult();
-	  });
-
-	  callInput.addEventListener("keydown", async e => {
-	      if(e.key==="Tab" || e.key==="Enter"){
-		  e.preventDefault();
-		  const val = callInput.value.trim().toUpperCase();
-		  if(!val) return;
-
-		  if(isDuplicateCallsign(val)){
-		      showStatus(`Duplicate call sign: ${val}`, "error");
-		      return;
-		  }
+		  callInput.value = "";
+		  hideLookupResult();
+		  setDownloadTooltip();
 		  showStatus(""); // clear any previous status
 
-		  let data = xmlCache[val];
-		  if(!data && sessionKey){
-		      try{ data = await qrzLookupCall(val); xmlCache[val]=data; }catch(err){ alert("Lookup failed"); return; }
-		  }
-		  lookupResultEl.textContent = data ? `${data.callsign} - ${data.name} (${data.location})` : val;
-		  showLookupResult();
-
-		  if(e.key==="Enter"){
-		      const shift = e.shiftKey;
-		      addRowToTable({
-			  callsign: primaryCall,
-			  name: data?.name || "—",
-			  location: data?.location || "—",
-			  imgSrc: data?.imgSrc || ""
-		      }, shift ? 1 : 0);
-		      callInput.value="";
-		      hideLookupResult();
-		      setDownloadTooltip();
-		  }
-	      } else if(e.key==="Escape") hideLookupResult();
+	      } else if(e.key === "Escape"){
+		  hideLookupResult();
+	      }
 	  });
 
 	  lookupBtn.addEventListener("click", async ()=>{
@@ -779,7 +766,7 @@ layout: null
 	      let data = xmlCache[val];
 	      const trafficState = e.shiftKey ? 1 : 0; // Shift+click = traffic
 	      addRowToTable({
-		  callsign: primaryCall,
+		  callsign: data?.callsign || val,
 		  name: data?.name || "—",
 		  location: data?.location || "—",
 		  imgSrc: data?.imgSrc || ""
@@ -798,7 +785,7 @@ layout: null
 	      let data = xmlCache[val];
 	      const trafficState = e.shiftKey ? 1 : 0;
 	      addRowToTable({
-		  callsign: primaryCall,
+		  callsign: data?.callsign || val,
 		  name: data?.name || "—",
 		  location: data?.location || "—",
 		  imgSrc: data?.imgSrc || ""
