@@ -16,87 +16,87 @@ layout: null
     <style>
       .error-msg { color: #dc3545; }
       .info-msg { color: #198754; }
-      .pending-box { background-color: #fff3cd; border: 1px solid #ffeeba; padding:0.5rem; margin-top:0.5rem; } 
+      .pending-box { background-color: #fff3cd; border: 1px solid #ffeeba; padding:0.5rem; margin-top:0.5rem; }
       th { cursor: pointer; }
       #infoBanner { font-size: 0.9rem; margin-top: 0.5rem; }
       .traffic-cell { cursor: pointer; }
       #lookupResult.clickable:hover {
-	  background-color: #ffe9b3 !important;
-	  border-color: #e6b800;
-	  box-shadow: 0 0 5px rgba(230, 184, 0, 0.6);
+          background-color: #ffe9b3 !important;
+          border-color: #e6b800;
+          box-shadow: 0 0 5px rgba(230, 184, 0, 0.6);
       }
       #downloadWrapper {
-	  display: inline-flex;
-	  align-items: center;
+          display: inline-flex;
+          align-items: center;
       }
     </style>
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
       <div class="container-fluid">
-	<!-- Brand -->
-	<span class="navbar-brand">{{ page.title }}</span>
+        <!-- Brand -->
+        <span class="navbar-brand">{{ page.title }}</span>
 
-	<!-- Net Info Form -->
-	<form class="d-flex ms-3">
-	  <input type="text" id="netName" class="form-control form-control-sm me-1" placeholder="Net Name">
-	  <input type="datetime-local" id="netDateTime" class="form-control form-control-sm me-1">
-	  <input type="text" id="frequencyInput" class="form-control form-control-sm me-1" placeholder="Frequency (MHz)">
-	  <button id="resetButton" type="button" class="btn
-							btn-secondary
-							btn-sm me-1">
-	    <i class="bi bi-trash"></i>Clear Input
-	  </button>
-	  <span id="downloadWrapper" data-bs-toggle="tooltip" data-bs-placement="top" title="">
+        <!-- Net Info Form -->
+        <form class="d-flex ms-3">
+          <input type="text" id="netName" class="form-control form-control-sm me-1" placeholder="Net Name">
+          <input type="datetime-local" id="netDateTime" class="form-control form-control-sm me-1">
+          <input type="text" id="frequencyInput" class="form-control form-control-sm me-1" placeholder="Frequency (MHz)">
+          <button id="resetButton" type="button" class="btn
+                                                        btn-secondary
+                                                        btn-sm me-1">
+            <i class="bi bi-trash"></i>Clear Input
+          </button>
+          <span id="downloadWrapper" data-bs-toggle="tooltip" data-bs-placement="top" title="">
             <button id="downloadCSV" type="button" class="btn
-							  btn-success
-							  btn-sm">
-	      <i class="bi bi-download"></i>Download CSV
-	    </button>
-	  </span>
-	  <button id="refreshButton" type="button" class="btn btn-outline-primary btn-sm me-1" disabled>
+                                                          btn-success
+                                                          btn-sm">
+              <i class="bi bi-download"></i>Download CSV
+            </button>
+          </span>
+          <button id="refreshButton" type="button" class="btn btn-outline-primary btn-sm me-1" disabled>
             <i class="bi bi-arrow-clockwise"></i> Refresh QRZ
-	  </button>
-	</form>
+          </button>
+        </form>
 
-	<!-- Help + QRZ Login -->
-	<div class="d-flex ms-auto align-items-center">
-	  <!-- Help button -->
-	  <button class="btn btn-outline-light btn-sm me-2" data-bs-toggle="modal" data-bs-target="#helpModal">
-	    <i class="bi bi-question-circle"></i> Help
-	  </button>
+        <!-- Help + QRZ Login -->
+        <div class="d-flex ms-auto align-items-center">
+          <!-- Help button -->
+          <button class="btn btn-outline-light btn-sm me-2" data-bs-toggle="modal" data-bs-target="#helpModal">
+            <i class="bi bi-question-circle"></i> Help
+          </button>
 
-	  <!-- QRZ Login Dropdown -->
-	  <div class="dropdown position-relative">
-	    <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="loginDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-	      QRZ Login
-	    </button>
-	    <div class="dropdown-menu dropdown-menu-end p-3" style="min-width: 250px;" data-bs-auto-close="outside">
-	      <form id="loginForm">
-		<div class="mb-2">
-		  <input type="text" class="form-control form-control-sm" id="username" placeholder="QRZ Username" autocomplete="username" required>
-		</div>
-		<div class="mb-2">
-		  <input type="password" class="form-control form-control-sm" id="password" placeholder="Password" autocomplete="current-password" required>
-		</div>
-		<div class="d-grid">
-		  <button class="btn btn-primary btn-sm" type="submit">Login</button>
-		</div>
-	      </form>
-	    </div>
-	  </div>
-	</div>
+          <!-- QRZ Login Dropdown -->
+          <div class="dropdown position-relative">
+            <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="loginDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+              QRZ Login
+            </button>
+            <div class="dropdown-menu dropdown-menu-end p-3" style="min-width: 250px;" data-bs-auto-close="outside">
+              <form id="loginForm">
+                <div class="mb-2">
+                  <input type="text" class="form-control form-control-sm" id="username" placeholder="QRZ Username" autocomplete="username" required>
+                </div>
+                <div class="mb-2">
+                  <input type="password" class="form-control form-control-sm" id="password" placeholder="Password" autocomplete="current-password" required>
+                </div>
+                <div class="d-grid">
+                  <button class="btn btn-primary btn-sm" type="submit">Login</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
       </div>
     </nav>
 
     <!-- Help Modal -->
     <div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-lg modal-dialog-centered">
-	<div class="modal-content">
-	  <div class="modal-header">
+        <div class="modal-content">
+          <div class="modal-header">
             <h5 class="modal-title" id="helpModalLabel">Net Check-Ins Help</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-	  </div>
-	  <div class="modal-body">
+          </div>
+          <div class="modal-body">
             <p><strong>QRZ Login:</strong> Optional. You only need an XML subscription to look up callsigns. Passwords are <em>not</em> stored, only the session key.</p>
             <p><strong>Local Data:</strong> All check-in data is stored locally in your browser (localStorage). Nothing is shared online.</p>
             <p><strong>Input Keys:</strong></p>
@@ -104,559 +104,559 @@ layout: null
               <li><strong>Tab:</strong> Performs a lookup of the callsign without adding it to the list.</li>
               <li><strong>Enter:</strong> Adds the currently displayed callsign to the check-in list with traffic set to <i class="bi bi-circle text-secondary"></i>.</li>
               <li><strong>Shift + Enter:</strong> Adds the callsign with traffic set to <i class="bi bi-exclamation-diamond-fill text-warning"></i>.</li>
-	      <li><strong>Escape:</strong> Clear the input field.</li>
+              <li><strong>Escape:</strong> Clear the input field.</li>
             </ul>
             <p><strong>Traffic</strong> column values (click the icon to change values):
-	      <ul>
-		<li><i class="bi bi-circle text-secondary"></i> (no traffic)</li>
-		<li><i class="bi bi-exclamation-diamond-fill text-warning"></i> (traffic pending)</li>
-		<li><i class="bi bi-check-circle text-success"></i> (traffic covered).</li>
-	      </ul>
-	    </p>
-	    <p>To file issues or contribute, visit <a href="https://github.com/jchonig/n2vlv" target="_blank">the GitHub repo</a></p>
-	  </div>
-	  <div class="modal-footer">
+              <ul>
+                <li><i class="bi bi-circle text-secondary"></i> (no traffic)</li>
+                <li><i class="bi bi-exclamation-diamond-fill text-warning"></i> (traffic pending)</li>
+                <li><i class="bi bi-check-circle text-success"></i> (traffic covered).</li>
+              </ul>
+            </p>
+            <p>To file issues or contribute, visit <a href="https://github.com/jchonig/n2vlv" target="_blank">the GitHub repo</a></p>
+          </div>
+          <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-	  </div>
-	</div>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Info Modal -->
     <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-lg modal-dialog-centered">
-	<div class="modal-content">
-	  <div class="modal-header">
+        <div class="modal-content">
+          <div class="modal-header">
             <h5 class="modal-title" id="infoModalLabel">Call Sign Info</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-	  </div>
-	  <div class="modal-body">
-	    <table class="table table-sm table-bordered" id="infoTable">
+          </div>
+          <div class="modal-body">
+            <table class="table table-sm table-bordered" id="infoTable">
               <tbody></tbody>
             </table>
-	  </div>
-	  <div class="modal-footer">
+          </div>
+          <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-	  </div>
-	</div>
+          </div>
+        </div>
       </div>
     </div>
 
     <div class="container mt-4">
       <div class="card shadow-sm">
-	<div class="card-body">
-	  <h5 class="card-title">Enter Call Sign</h5>
-	  <div class="input-group">
+        <div class="card-body">
+          <h5 class="card-title">Enter Call Sign</h5>
+          <div class="input-group">
             <input id="callsignInput" type="text" class="form-control" placeholder="e.g., K1ABC">
             <button id="lookupButton" class="btn btn-primary">Lookup</button>
             <button id="addButton" class="btn btn-primary">Add</button>
-	  </div>
-	  <div id="status" class="form-text mt-2"></div>
-	  <!-- Lookup Result Box -->
-	  <div id="lookupResult"
+          </div>
+          <div id="status" class="form-text mt-2"></div>
+          <!-- Lookup Result Box -->
+          <div id="lookupResult"
                class="p-2 mt-2 bg-warning-subtle border rounded d-none clickable"
                title="Click to add (Shift+Click = add with traffic)"
                style="cursor: pointer;">
-	  </div>
-	  <div id="infoBanner" class="text-muted">
+          </div>
+          <div id="infoBanner" class="text-muted">
             Tip: <strong>Tab</strong> performs a lookup without adding to the list. <strong>Enter</strong> adds the currently displayed callsign. <strong>Shift+Enter</strong> marks traffic.
-	  </div>
-	</div>
+          </div>
+        </div>
       </div>
 
       <div class="card mt-4 shadow-sm">
-	<div class="card-body">
-	  <h5 class="card-title" id="checkedInTitle">Checked-In Operators</h5>
-	  <table class="table table-striped" id="callTable">
+        <div class="card-body">
+          <h5 class="card-title" id="checkedInTitle">Checked-In Operators</h5>
+          <table class="table table-striped" id="callTable">
             <thead>
               <tr>
-		<th colspan=2 data-key="callsign">Call Sign</th>
-		<th data-key="name">Name</th>
-		<th data-key="location">Location</th>
-		<th data-key="time">Check-In Time</th>
-		<th data-key="traffic" class="text-center">Traffic</th>
-		<th>Actions</th>
+                <th colspan=2 data-key="callsign">Call Sign</th>
+                <th data-key="name">Name</th>
+                <th data-key="location">Location</th>
+                <th data-key="time">Check-In Time</th>
+                <th data-key="traffic" class="text-center">Traffic</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody></tbody>
-	  </table>
-	</div>
+          </table>
+        </div>
       </div>
     </div>
 
     <script>
       document.addEventListener("DOMContentLoaded", function() {
-	  const hamBands=[[1.8,2],[3.5,4],[7,7.3],[14,14.35],[21,21.45],[28,29.7],[50,54],[144,148],[222,225],[420,450]];
-	  let sessionKey = null, sessionUser=null, tempLookupData=null, currentSort={key:null,asc:true}, xmlCache={};
-
-	  const refreshBtn = document.getElementById("refreshButton");
-
-	  function updateRefreshButton() {
-	      if (sessionKey) {
-		  refreshBtn.disabled = false;
-		  refreshBtn.classList.remove("btn-outline-light");
-		  refreshBtn.classList.add("btn-light");
-	      } else {
-		  refreshBtn.disabled = true;
-		  refreshBtn.classList.remove("btn-light");
-		  refreshBtn.classList.add("btn-outline-light");
-	      }
-	  }
-
-	  // Call this whenever sessionKey changes:
-	  updateRefreshButton();
-
-	  const dtInput = document.getElementById("netDateTime");
-	  const tbody = document.querySelector("#callTable tbody");
-	  const statusEl = document.getElementById("status");
-	  const lookupResultEl = document.getElementById("lookupResult");
-	  const callInput = document.getElementById("callsignInput");
-	  const addBtn = document.getElementById("addButton");
-	  const lookupBtn = document.getElementById("lookupButton");
-	  const freqInput = document.getElementById("frequencyInput");
-	  const downloadBtn = document.getElementById("downloadCSV");
-	  const downloadWrapper = document.getElementById("downloadWrapper");
-	  const netNameInput = document.getElementById("netName");
-	  const loginDropdown = document.getElementById("loginDropdown");
-
-	  const infoModalEl = document.getElementById("infoModal");
-	  const infoTableBody = document.querySelector("#infoTable tbody");
-	  const infoModal = new bootstrap.Modal(infoModalEl);
-
-	  function showLookupResult() { lookupResultEl.classList.remove("d-none"); }
-	  function hideLookupResult() { lookupResultEl.classList.add("d-none"); }
-
-	  let tooltip = new bootstrap.Tooltip(downloadWrapper);
-
-	  function setDefaultNetTime() {
-	      const now = new Date();
-	      if (now.getMinutes() !== 0) {
-		  now.setHours(now.getHours() + 1);
-	      }
-	      now.setMinutes(0, 0, 0);
-
-	      // Build a local datetime string in the form YYYY-MM-DDTHH:mm
-	      const year = now.getFullYear();
-	      const month = String(now.getMonth() + 1).padStart(2, '0');
-	      const day = String(now.getDate()).padStart(2, '0');
-	      const hours = String(now.getHours()).padStart(2, '0');
-	      const minutes = String(now.getMinutes()).padStart(2, '0');
-
-	      dtInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
-	  }
-	  setDefaultNetTime();
-
-	  function updateCheckedInCount() {
-	      const rows = Array.from(tbody.children);
-	      const trafficCount = rows.filter(r => r.cells[5].getTrafficValue() === "*").length;
-	      const totalCount = rows.length;
-	      const titleEl = document.getElementById("checkedInTitle");
-	      titleEl.textContent = `Checked-In Operators (${trafficCount} with traffic / ${totalCount} total)`;
-	  }
-
-	  resetButton.addEventListener("click", () => {
-	      if (!confirm("Are you sure you want to clear all data?")) return;
-
-	      // Clear localStorage
-	      localStorage.removeItem("netCheckData");
-
-	      // Clear table body
-	      tbody.innerHTML = "";
-
-	      // Clear net name
-	      netNameInput.value = "";
-
-	      // Reset net date/time to next full hour
-	      setDefaultNetTime();
-
-	      // Clear frequency input
-	      freqInput.value = "";
-
-	      // Reset tooltip
-	      setDownloadTooltip();
-
-	      // Update title
-	      updateCheckedInCount();
-
-	      showStatus("All data cleared", "info");
-	  });
-
-	  function showStatus(msg,type="error"){
-	      if(!msg){ statusEl.style.display="none"; return; }
-	      statusEl.style.display="block";
-	      statusEl.textContent = msg;
-	      statusEl.className = type==="error"?"error-msg":"info-msg";
-	  }
-
-	  function isValidFrequency(freq){
-	      const f=parseFloat(freq);
-	      if(isNaN(f)) return false;
-	      return hamBands.some(b=>f>=b[0]&&f<=b[1]);
-	  }
-
-	  function setDownloadTooltip(){
-	      let missing = [];
-	      if(!netNameInput.value.trim()) missing.push("Net Name");
-	      if(!dtInput.value.trim()) missing.push("Net Date/Time");
-	      if(tbody.children.length===0) missing.push("At least one check-in");
-
-	      const tooltipText = missing.length ? "Fill in: " + missing.join(", ") : "Download CSV";
-	      downloadBtn.disabled = missing.length > 0;
-
-	      tooltip.dispose();
-	      downloadWrapper.setAttribute("title", tooltipText);
-	      tooltip = new bootstrap.Tooltip(downloadWrapper);
-	  }
-
-	  freqInput.addEventListener("blur", ()=>{
-	      const freq=freqInput.value.trim();
-	      if(freq && !isValidFrequency(freq)){
-		  showStatus("Invalid frequency! Must be a valid ham band in MHz.","error");
-	      } else showStatus("", "info");
-	  });
-
-	  const trafficStates = [
-	      { icon: "bi-circle text-secondary", value: "-" },
-	      { icon: "bi-exclamation-diamond-fill text-warning", value: "*" },
-	      { icon: "bi-check-circle text-success", value: "✔" }
-	  ];
-
-	  function createTrafficCell(initialState = 0) {
-	      const td = document.createElement("td");
-	      td.className = "text-center traffic-cell";
-	      let stateIndex = initialState;
-	      const i = document.createElement("i");
-	      i.className = trafficStates[stateIndex].icon;
-	      td.appendChild(i);
-	      td.addEventListener("click", () => {
-		  stateIndex = (stateIndex + 1) % trafficStates.length;
-		  i.className = trafficStates[stateIndex].icon;
-		  saveData();
-	      });
-	      td.getTrafficValue = () => trafficStates[stateIndex].value;
-	      td.setTrafficValue = (val) => {
-		  const idx = trafficStates.findIndex(s => s.value === val);
-		  if(idx >= 0){ stateIndex = idx; i.className = trafficStates[stateIndex].icon; }
-	      }
-	      return td;
-	  }
-
-	  function saveData(){
-	      const data={
-		  calls:Array.from(tbody.children).map(r=>({
-		      callsign:r.cells[1].textContent,
-		      name:r.cells[2].textContent,
-		      location:r.cells[3].textContent,
-		      time:r.cells[4].textContent,
-		      traffic:r.cells[5].getTrafficValue(),
-		      imgSrc:r.cells[0].querySelector("img")?.src || ""
-		  })),
-		  netName:netNameInput.value,
-		  netDateTime:dtInput.value,
-		  freq:freqInput.value
-	      };
-	      localStorage.setItem("netCheckData",JSON.stringify(data));
-	      if(sessionKey && sessionUser){
-		  localStorage.setItem("qrzSession",JSON.stringify({sessionKey,sessionUser}));
-	      }
-	      updateCheckedInCount();
-	  }
-
-	  function createActionButtons(row, callsign){
-	      const td = document.createElement("td");
-
-	      const editBtn = document.createElement("button");
-	      editBtn.className="btn btn-sm btn-primary me-1";
-	      editBtn.textContent="Edit";
-	      editBtn.addEventListener("click", ()=>{
-		  const cell = row.cells[1];
-		  const oldVal = cell.textContent;
-		  const input = document.createElement("input");
-		  input.type = "text";
-		  input.value = oldVal;
-		  input.className = "form-control form-control-sm";
-		  cell.textContent = "";
-		  cell.appendChild(input);
-		  input.focus();
-
-		  input.addEventListener("keydown", async (e)=>{
-		      if(e.key==="Tab"){
-			  e.preventDefault();
-			  const val = input.value.trim().toUpperCase();
-			  if(sessionKey && val){
-			      try{
-				  const data = await qrzLookupCall(val);
-				  row.cells[2].textContent = data.name;
-				  row.cells[3].textContent = data.location;
-				  xmlCache[data.callsign] = data;  // store by primary callsign
-				  tempLookupData = data;
-			      }catch(err){ alert("Lookup failed"); }
-			  }
-		      } else if(e.key==="Enter" || (e.shiftKey && e.key==="Enter")){
-			  e.preventDefault();
-			  const typedVal = input.value.trim().toUpperCase();
-			  if(!typedVal) return;
-
-			  let data = xmlCache[typedVal];
-			  if(!data && sessionKey){
-			      try {
-				  data = await qrzLookupCall(typedVal);
-				  xmlCache[data.callsign] = data;
-			      } catch(err) { alert("Lookup failed"); return; }
-			  }
-
-			  const primaryCall = data?.callsign || typedVal; // use primary call
-
-			  // Duplicate check against primary callsign
-			  if (Array.from(tbody.children).some(r => r !== row && r.cells[1].textContent.toUpperCase() === primaryCall)) {
-			      let errEl = row.cells[1].querySelector(".inline-error");
-			      if (!errEl) {
-				  errEl = document.createElement("div");
-				  errEl.className = "inline-error text-danger small mt-1";
-				  row.cells[1].appendChild(errEl);
-			      }
-			      errEl.textContent = "Duplicate call sign!";
-			      return;
-			  }
-
-			  // Remove error if any
-			  const errEl = row.cells[1].querySelector(".inline-error");
-			  if (errEl) errEl.remove();
-
-			  // Update row with primary call
-			  cell.innerHTML = addLink(primaryCall);
-			  row.cells[2].textContent = data?.name || "—";
-			  row.cells[3].textContent = data?.location || "—";
-
-			  const imgCell = row.cells[0];
-			  imgCell.innerHTML = "";
-			  if(data?.xmlData){
-			      const parser = new DOMParser();
-			      const xml = parser.parseFromString(data.xmlData, "application/xml");
-			      const imgNode = xml.querySelector("image") || xml.querySelector("photo");
-			      if(imgNode && imgNode.textContent){
-				  const img = document.createElement("img");
-				  img.src = imgNode.textContent;
-				  img.style.height = "40px";
-				  img.style.width = "auto";
-				  img.style.verticalAlign = "middle";
-				  imgCell.appendChild(img);
-			      }
-			  }
-
-			  if(e.shiftKey) row.cells[5].setTrafficValue("*");
-			  saveData();
-		      } else if(e.key==="Escape"){
-			  cell.textContent = oldVal;
-		      }
-		  });
-	      });
-
-	      const infoBtn = document.createElement("button");
-	      infoBtn.className="btn btn-sm btn-info me-1";
-	      infoBtn.textContent="Info";
-	      infoBtn.addEventListener("click", async ()=>{
-		  const cs = row.cells[1].textContent;
-		  let data = xmlCache[cs];
-		  if(!data && sessionKey){
-		      try{
-			  data = await qrzLookupCall(cs);
-			  xmlCache[cs] = data;
-		      }catch(err){ alert("Lookup failed"); return; }
-		  }
-
-		  if(data){
-		      infoTableBody.innerHTML="";
-		      const parser = new DOMParser();
-		      const xml = parser.parseFromString(data.xmlData,"application/xml");
-		      const callNode = xml.querySelector("Callsign");
-		      if(callNode){
-			  Array.from(callNode.children).forEach(child=>{
-			      const tr = document.createElement("tr");
-			      const th = document.createElement("th"); th.textContent = child.tagName;
-			      const td = document.createElement("td"); td.textContent = child.textContent;
-			      tr.appendChild(th);
-			      tr.appendChild(td);
-			      infoTableBody.appendChild(tr);
-			  });
-		      }
-		      infoModal.show();
-		  }
-	      });
-
-	      const delBtn = document.createElement("button");
-	      delBtn.className="btn btn-sm btn-danger";
-	      delBtn.textContent="Delete";
-	      delBtn.addEventListener("click", ()=>{ row.remove(); saveData(); setDownloadTooltip(); });
-
-	      td.appendChild(editBtn);
-	      td.appendChild(infoBtn);
-	      td.appendChild(delBtn);
-	      return td;
-	  }
-
-	  function isDuplicateCallsign(val) {
-	      const upperVal = val.toUpperCase();
-	      return Array.from(tbody.children).some(r => r.cells[1].textContent.toUpperCase() === upperVal);
-	  }
-
-	  function addRowToTable(data, trafficState=0){
-	      const primaryCall = data.callsign.toUpperCase();
-
-	      if (Array.from(tbody.children).some(r => r.cells[1].textContent.toUpperCase() === primaryCall)) {
-		  showStatus(`Duplicate call sign: ${primaryCall}`, "error");
-		  return;
-	      }
-	      showStatus("");
-
-	      const row = document.createElement("tr");
-
-	      // Image cell
-	      const imgCell = document.createElement("td");
-	      if(data.imgSrc){
-		  const img = document.createElement("img");
-		  img.src = data.imgSrc;
-		  img.style.height = "40px";
-		  img.style.width = "auto";
-		  img.style.verticalAlign = "middle";
-		  imgCell.appendChild(img);
-	      }
-	      row.appendChild(imgCell);
-
-	      const now = new Date();
-	      const timeStr = now.toLocaleTimeString("en-US", {hour12:false});
-	      row.innerHTML += `<td>${addLink(primaryCall)}</td><td>${data.name}</td><td>${data.location}</td><td>${timeStr}</td>`;
-
-	      const trafficCell = createTrafficCell(trafficState);
-	      row.appendChild(trafficCell);
-
-	      row.appendChild(createActionButtons(row, primaryCall));
-
-	      tbody.appendChild(row);
-	      saveData();
-	  }
-
-	  function loadData(){
-	      const saved=JSON.parse(localStorage.getItem("netCheckData")||"{}");
-	      if(saved.calls){
-		  saved.calls.forEach(c=>{
-		      const row=document.createElement("tr");
-		      const imgCell = document.createElement("td");
-		      if(c.imgSrc){
-			  const img = document.createElement("img");
-			  img.src = c.imgSrc;
-			  img.style.height="40px";
-			  img.style.width="auto";
-			  img.style.verticalAlign="middle";
-			  imgCell.appendChild(img);
-		      }
-		      row.appendChild(imgCell);
-		      row.innerHTML += `<td>${addLink(c.callsign)}</td><td>${c.name}</td><td>${c.location}</td><td>${c.time}</td>`;
-		      const trafficCell = createTrafficCell();
-		      trafficCell.setTrafficValue(c.traffic || "-");
-		      row.appendChild(trafficCell);
-		      row.appendChild(createActionButtons(row,c.callsign));
-		      tbody.appendChild(row);
-		  });
-	      }
-	      if(saved.netName) netNameInput.value=saved.netName;
-	      if(saved.netDateTime) dtInput.value=saved.netDateTime;
-	      if(saved.freq) freqInput.value=saved.freq;
-	  }
-
-	  function updateLoginDisplay(){ loginDropdown.textContent = sessionUser ? sessionUser.toUpperCase() : "QRZ Login"; }
-
-	  // --- QRZ Login Handler ---
-	  document.getElementById("loginForm").addEventListener("submit", async (e) => {
-	      e.preventDefault();
-	      const username = document.getElementById("username").value.trim();
-	      const password = document.getElementById("password").value.trim();
-	      if(!username || !password) { alert("Enter username and password"); return; }
-
-	      showStatus("Logging in...", "info");
-
-	      try {
-		  // QRZ XML login request
-		  const url = `https://xmldata.qrz.com/xml/current/?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
-		  const resp = await fetch(url);
-		  const text = await resp.text();
-		  const xml = new DOMParser().parseFromString(text, "application/xml");
-
-		  const keyNode = xml.querySelector("Session > Key");
-		  if(!keyNode) throw new Error("Login failed");
-
-		  sessionKey = keyNode.textContent;
-		  sessionUser = username;
-		  localStorage.setItem("qrzSession", JSON.stringify({ sessionKey, sessionUser }));
-		  updateLoginDisplay();
-		  updateRefreshButton();
-		  showStatus("Logged in successfully", "info");
-
-		  callInput.disabled = lookupBtn.disabled = freqInput.disabled = false;
-	      } catch(err) {
-		  sessionKey = null;
-		  sessionUser = null;
-		  localStorage.removeItem("qrzSession");
-		  updateLoginDisplay();
-		  updateRefreshButton();
-		  showStatus("QRZ login failed", "error");
-	      }
-	  });
-
-	  function loadSession(){
-	      const sess = JSON.parse(localStorage.getItem("qrzSession") || "{}");
-	      if(sess.sessionKey && sess.sessionUser){
-		  sessionKey = sess.sessionKey;
-		  sessionUser = sess.sessionUser;
-	      }
-	      updateLoginDisplay();
-	      updateRefreshButton();
-	      callInput.disabled = lookupBtn.disabled = freqInput.disabled = false;
-	  }
-
-	  async function qrzLookupCall(callsign) {
-	      const url = `https://xmldata.qrz.com/xml/current/?s=${sessionKey};callsign=${encodeURIComponent(callsign)}`;
-
-	      try {
-		  const resp = await fetch(url);
-		  if (!resp.ok) {
-		      throw new Error("NETWORK");
-		  }
-
-		  const text = await resp.text();
-
-		  // Parse QRZ XML response
-		  const parser = new DOMParser();
-		  const xml = parser.parseFromString(text, "application/xml");
-
-		  // Check for session or login errors
-		  const errorEl = xml.querySelector("Error");
-		  if (errorEl) {
-		      const errMsg = errorEl.textContent || "";
-		      if (errMsg.match(/Session Key Error|Invalid session/i)) {
-			  throw new Error("INVALID_SESSION");
-		      } else if (errMsg.match(/not found/i)) {
-			  throw new Error("NOT_FOUND");
-		      } else {
-			  throw new Error("LOOKUP_ERROR");
-		      }
-		  }
-
-		  // Extract fields (simplified)
+          const hamBands=[[1.8,2],[3.5,4],[7,7.3],[14,14.35],[21,21.45],[28,29.7],[50,54],[144,148],[222,225],[420,450]];
+          let sessionKey = null, sessionUser=null, tempLookupData=null, currentSort={key:null,asc:true}, xmlCache={};
+
+          const refreshBtn = document.getElementById("refreshButton");
+
+          function updateRefreshButton() {
+              if (sessionKey) {
+                  refreshBtn.disabled = false;
+                  refreshBtn.classList.remove("btn-outline-light");
+                  refreshBtn.classList.add("btn-light");
+              } else {
+                  refreshBtn.disabled = true;
+                  refreshBtn.classList.remove("btn-light");
+                  refreshBtn.classList.add("btn-outline-light");
+              }
+          }
+
+          // Call this whenever sessionKey changes:
+          updateRefreshButton();
+
+          const dtInput = document.getElementById("netDateTime");
+          const tbody = document.querySelector("#callTable tbody");
+          const statusEl = document.getElementById("status");
+          const lookupResultEl = document.getElementById("lookupResult");
+          const callInput = document.getElementById("callsignInput");
+          const addBtn = document.getElementById("addButton");
+          const lookupBtn = document.getElementById("lookupButton");
+          const freqInput = document.getElementById("frequencyInput");
+          const downloadBtn = document.getElementById("downloadCSV");
+          const downloadWrapper = document.getElementById("downloadWrapper");
+          const netNameInput = document.getElementById("netName");
+          const loginDropdown = document.getElementById("loginDropdown");
+
+          const infoModalEl = document.getElementById("infoModal");
+          const infoTableBody = document.querySelector("#infoTable tbody");
+          const infoModal = new bootstrap.Modal(infoModalEl);
+
+          function showLookupResult() { lookupResultEl.classList.remove("d-none"); }
+          function hideLookupResult() { lookupResultEl.classList.add("d-none"); }
+
+          let tooltip = new bootstrap.Tooltip(downloadWrapper);
+
+          function setDefaultNetTime() {
+              const now = new Date();
+              if (now.getMinutes() !== 0) {
+                  now.setHours(now.getHours() + 1);
+              }
+              now.setMinutes(0, 0, 0);
+
+              // Build a local datetime string in the form YYYY-MM-DDTHH:mm
+              const year = now.getFullYear();
+              const month = String(now.getMonth() + 1).padStart(2, '0');
+              const day = String(now.getDate()).padStart(2, '0');
+              const hours = String(now.getHours()).padStart(2, '0');
+              const minutes = String(now.getMinutes()).padStart(2, '0');
+
+              dtInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+          }
+          setDefaultNetTime();
+
+          function updateCheckedInCount() {
+              const rows = Array.from(tbody.children);
+              const trafficCount = rows.filter(r => r.cells[5].getTrafficValue() === "*").length;
+              const totalCount = rows.length;
+              const titleEl = document.getElementById("checkedInTitle");
+              titleEl.textContent = `Checked-In Operators (${trafficCount} with traffic / ${totalCount} total)`;
+          }
+
+          resetButton.addEventListener("click", () => {
+              if (!confirm("Are you sure you want to clear all data?")) return;
+
+              // Clear localStorage
+              localStorage.removeItem("netCheckData");
+
+              // Clear table body
+              tbody.innerHTML = "";
+
+              // Clear net name
+              netNameInput.value = "";
+
+              // Reset net date/time to next full hour
+              setDefaultNetTime();
+
+              // Clear frequency input
+              freqInput.value = "";
+
+              // Reset tooltip
+              setDownloadTooltip();
+
+              // Update title
+              updateCheckedInCount();
+
+              showStatus("All data cleared", "info");
+          });
+
+          function showStatus(msg,type="error"){
+              if(!msg){ statusEl.style.display="none"; return; }
+              statusEl.style.display="block";
+              statusEl.textContent = msg;
+              statusEl.className = type==="error"?"error-msg":"info-msg";
+          }
+
+          function isValidFrequency(freq){
+              const f=parseFloat(freq);
+              if(isNaN(f)) return false;
+              return hamBands.some(b=>f>=b[0]&&f<=b[1]);
+          }
+
+          function setDownloadTooltip(){
+              let missing = [];
+              if(!netNameInput.value.trim()) missing.push("Net Name");
+              if(!dtInput.value.trim()) missing.push("Net Date/Time");
+              if(tbody.children.length===0) missing.push("At least one check-in");
+
+              const tooltipText = missing.length ? "Fill in: " + missing.join(", ") : "Download CSV";
+              downloadBtn.disabled = missing.length > 0;
+
+              tooltip.dispose();
+              downloadWrapper.setAttribute("title", tooltipText);
+              tooltip = new bootstrap.Tooltip(downloadWrapper);
+          }
+
+          freqInput.addEventListener("blur", ()=>{
+              const freq=freqInput.value.trim();
+              if(freq && !isValidFrequency(freq)){
+                  showStatus("Invalid frequency! Must be a valid ham band in MHz.","error");
+              } else showStatus("", "info");
+          });
+
+          const trafficStates = [
+              { icon: "bi-circle text-secondary", value: "-" },
+              { icon: "bi-exclamation-diamond-fill text-warning", value: "*" },
+              { icon: "bi-check-circle text-success", value: "✔" }
+          ];
+
+          function createTrafficCell(initialState = 0) {
+              const td = document.createElement("td");
+              td.className = "text-center traffic-cell";
+              let stateIndex = initialState;
+              const i = document.createElement("i");
+              i.className = trafficStates[stateIndex].icon;
+              td.appendChild(i);
+              td.addEventListener("click", () => {
+                  stateIndex = (stateIndex + 1) % trafficStates.length;
+                  i.className = trafficStates[stateIndex].icon;
+                  saveData();
+              });
+              td.getTrafficValue = () => trafficStates[stateIndex].value;
+              td.setTrafficValue = (val) => {
+                  const idx = trafficStates.findIndex(s => s.value === val);
+                  if(idx >= 0){ stateIndex = idx; i.className = trafficStates[stateIndex].icon; }
+              }
+              return td;
+          }
+
+          function saveData(){
+              const data={
+                  calls:Array.from(tbody.children).map(r=>({
+                      callsign:r.cells[1].textContent,
+                      name:r.cells[2].textContent,
+                      location:r.cells[3].textContent,
+                      time:r.cells[4].textContent,
+                      traffic:r.cells[5].getTrafficValue(),
+                      imgSrc:r.cells[0].querySelector("img")?.src || ""
+                  })),
+                  netName:netNameInput.value,
+                  netDateTime:dtInput.value,
+                  freq:freqInput.value
+              };
+              localStorage.setItem("netCheckData",JSON.stringify(data));
+              if(sessionKey && sessionUser){
+                  localStorage.setItem("qrzSession",JSON.stringify({sessionKey,sessionUser}));
+              }
+              updateCheckedInCount();
+          }
+
+          function createActionButtons(row, callsign){
+              const td = document.createElement("td");
+
+              const editBtn = document.createElement("button");
+              editBtn.className="btn btn-sm btn-primary me-1";
+              editBtn.textContent="Edit";
+              editBtn.addEventListener("click", ()=>{
+                  const cell = row.cells[1];
+                  const oldVal = cell.textContent;
+                  const input = document.createElement("input");
+                  input.type = "text";
+                  input.value = oldVal;
+                  input.className = "form-control form-control-sm";
+                  cell.textContent = "";
+                  cell.appendChild(input);
+                  input.focus();
+
+                  input.addEventListener("keydown", async (e)=>{
+                      if(e.key==="Tab"){
+                          e.preventDefault();
+                          const val = input.value.trim().toUpperCase();
+                          if(sessionKey && val){
+                              try{
+                                  const data = await qrzLookupCall(val);
+                                  row.cells[2].textContent = data.name;
+                                  row.cells[3].textContent = data.location;
+                                  xmlCache[data.callsign] = data;  // store by primary callsign
+                                  tempLookupData = data;
+                              }catch(err){ alert("Lookup failed"); }
+                          }
+                      } else if(e.key==="Enter" || (e.shiftKey && e.key==="Enter")){
+                          e.preventDefault();
+                          const typedVal = input.value.trim().toUpperCase();
+                          if(!typedVal) return;
+
+                          let data = xmlCache[typedVal];
+                          if(!data && sessionKey){
+                              try {
+                                  data = await qrzLookupCall(typedVal);
+                                  xmlCache[data.callsign] = data;
+                              } catch(err) { alert("Lookup failed"); return; }
+                          }
+
+                          const primaryCall = data?.callsign || typedVal; // use primary call
+
+                          // Duplicate check against primary callsign
+                          if (Array.from(tbody.children).some(r => r !== row && r.cells[1].textContent.toUpperCase() === primaryCall)) {
+                              let errEl = row.cells[1].querySelector(".inline-error");
+                              if (!errEl) {
+                                  errEl = document.createElement("div");
+                                  errEl.className = "inline-error text-danger small mt-1";
+                                  row.cells[1].appendChild(errEl);
+                              }
+                              errEl.textContent = "Duplicate call sign!";
+                              return;
+                          }
+
+                          // Remove error if any
+                          const errEl = row.cells[1].querySelector(".inline-error");
+                          if (errEl) errEl.remove();
+
+                          // Update row with primary call
+                          cell.innerHTML = addLink(primaryCall);
+                          row.cells[2].textContent = data?.name || "—";
+                          row.cells[3].textContent = data?.location || "—";
+
+                          const imgCell = row.cells[0];
+                          imgCell.innerHTML = "";
+                          if(data?.xmlData){
+                              const parser = new DOMParser();
+                              const xml = parser.parseFromString(data.xmlData, "application/xml");
+                              const imgNode = xml.querySelector("image") || xml.querySelector("photo");
+                              if(imgNode && imgNode.textContent){
+                                  const img = document.createElement("img");
+                                  img.src = imgNode.textContent;
+                                  img.style.height = "40px";
+                                  img.style.width = "auto";
+                                  img.style.verticalAlign = "middle";
+                                  imgCell.appendChild(img);
+                              }
+                          }
+
+                          if(e.shiftKey) row.cells[5].setTrafficValue("*");
+                          saveData();
+                      } else if(e.key==="Escape"){
+                          cell.textContent = oldVal;
+                      }
+                  });
+              });
+
+              const infoBtn = document.createElement("button");
+              infoBtn.className="btn btn-sm btn-info me-1";
+              infoBtn.textContent="Info";
+              infoBtn.addEventListener("click", async ()=>{
+                  const cs = row.cells[1].textContent;
+                  let data = xmlCache[cs];
+                  if(!data && sessionKey){
+                      try{
+                          data = await qrzLookupCall(cs);
+                          xmlCache[cs] = data;
+                      }catch(err){ alert("Lookup failed"); return; }
+                  }
+
+                  if(data){
+                      infoTableBody.innerHTML="";
+                      const parser = new DOMParser();
+                      const xml = parser.parseFromString(data.xmlData,"application/xml");
+                      const callNode = xml.querySelector("Callsign");
+                      if(callNode){
+                          Array.from(callNode.children).forEach(child=>{
+                              const tr = document.createElement("tr");
+                              const th = document.createElement("th"); th.textContent = child.tagName;
+                              const td = document.createElement("td"); td.textContent = child.textContent;
+                              tr.appendChild(th);
+                              tr.appendChild(td);
+                              infoTableBody.appendChild(tr);
+                          });
+                      }
+                      infoModal.show();
+                  }
+              });
+
+              const delBtn = document.createElement("button");
+              delBtn.className="btn btn-sm btn-danger";
+              delBtn.textContent="Delete";
+              delBtn.addEventListener("click", ()=>{ row.remove(); saveData(); setDownloadTooltip(); });
+
+              td.appendChild(editBtn);
+              td.appendChild(infoBtn);
+              td.appendChild(delBtn);
+              return td;
+          }
+
+          function isDuplicateCallsign(val) {
+              const upperVal = val.toUpperCase();
+              return Array.from(tbody.children).some(r => r.cells[1].textContent.toUpperCase() === upperVal);
+          }
+
+          function addRowToTable(data, trafficState=0){
+              const primaryCall = data.callsign.toUpperCase();
+
+              if (Array.from(tbody.children).some(r => r.cells[1].textContent.toUpperCase() === primaryCall)) {
+                  showStatus(`Duplicate call sign: ${primaryCall}`, "error");
+                  return;
+              }
+              showStatus("");
+
+              const row = document.createElement("tr");
+
+              // Image cell
+              const imgCell = document.createElement("td");
+              if(data.imgSrc){
+                  const img = document.createElement("img");
+                  img.src = data.imgSrc;
+                  img.style.height = "40px";
+                  img.style.width = "auto";
+                  img.style.verticalAlign = "middle";
+                  imgCell.appendChild(img);
+              }
+              row.appendChild(imgCell);
+
+              const now = new Date();
+              const timeStr = now.toLocaleTimeString("en-US", {hour12:false});
+              row.innerHTML += `<td>${addLink(primaryCall)}</td><td>${data.name}</td><td>${data.location}</td><td>${timeStr}</td>`;
+
+              const trafficCell = createTrafficCell(trafficState);
+              row.appendChild(trafficCell);
+
+              row.appendChild(createActionButtons(row, primaryCall));
+
+              tbody.appendChild(row);
+              saveData();
+          }
+
+          function loadData(){
+              const saved=JSON.parse(localStorage.getItem("netCheckData")||"{}");
+              if(saved.calls){
+                  saved.calls.forEach(c=>{
+                      const row=document.createElement("tr");
+                      const imgCell = document.createElement("td");
+                      if(c.imgSrc){
+                          const img = document.createElement("img");
+                          img.src = c.imgSrc;
+                          img.style.height="40px";
+                          img.style.width="auto";
+                          img.style.verticalAlign="middle";
+                          imgCell.appendChild(img);
+                      }
+                      row.appendChild(imgCell);
+                      row.innerHTML += `<td>${addLink(c.callsign)}</td><td>${c.name}</td><td>${c.location}</td><td>${c.time}</td>`;
+                      const trafficCell = createTrafficCell();
+                      trafficCell.setTrafficValue(c.traffic || "-");
+                      row.appendChild(trafficCell);
+                      row.appendChild(createActionButtons(row,c.callsign));
+                      tbody.appendChild(row);
+                  });
+              }
+              if(saved.netName) netNameInput.value=saved.netName;
+              if(saved.netDateTime) dtInput.value=saved.netDateTime;
+              if(saved.freq) freqInput.value=saved.freq;
+          }
+
+          function updateLoginDisplay(){ loginDropdown.textContent = sessionUser ? sessionUser.toUpperCase() : "QRZ Login"; }
+
+          // --- QRZ Login Handler ---
+          document.getElementById("loginForm").addEventListener("submit", async (e) => {
+              e.preventDefault();
+              const username = document.getElementById("username").value.trim();
+              const password = document.getElementById("password").value.trim();
+              if(!username || !password) { alert("Enter username and password"); return; }
+
+              showStatus("Logging in...", "info");
+
+              try {
+                  // QRZ XML login request
+                  const url = `https://xmldata.qrz.com/xml/current/?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+                  const resp = await fetch(url);
+                  const text = await resp.text();
+                  const xml = new DOMParser().parseFromString(text, "application/xml");
+
+                  const keyNode = xml.querySelector("Session > Key");
+                  if(!keyNode) throw new Error("Login failed");
+
+                  sessionKey = keyNode.textContent;
+                  sessionUser = username;
+                  localStorage.setItem("qrzSession", JSON.stringify({ sessionKey, sessionUser }));
+                  updateLoginDisplay();
+                  updateRefreshButton();
+                  showStatus("Logged in successfully", "info");
+
+                  callInput.disabled = lookupBtn.disabled = freqInput.disabled = false;
+              } catch(err) {
+                  sessionKey = null;
+                  sessionUser = null;
+                  localStorage.removeItem("qrzSession");
+                  updateLoginDisplay();
+                  updateRefreshButton();
+                  showStatus("QRZ login failed", "error");
+              }
+          });
+
+          function loadSession(){
+              const sess = JSON.parse(localStorage.getItem("qrzSession") || "{}");
+              if(sess.sessionKey && sess.sessionUser){
+                  sessionKey = sess.sessionKey;
+                  sessionUser = sess.sessionUser;
+              }
+              updateLoginDisplay();
+              updateRefreshButton();
+              callInput.disabled = lookupBtn.disabled = freqInput.disabled = false;
+          }
+
+          async function qrzLookupCall(callsign) {
+              const url = `https://xmldata.qrz.com/xml/current/?s=${sessionKey};callsign=${encodeURIComponent(callsign)}`;
+
+              try {
+                  const resp = await fetch(url);
+                  if (!resp.ok) {
+                      throw new Error("NETWORK");
+                  }
+
+                  const text = await resp.text();
+
+                  // Parse QRZ XML response
+                  const parser = new DOMParser();
+                  const xml = parser.parseFromString(text, "application/xml");
+
+                  // Check for session or login errors
+                  const errorEl = xml.querySelector("Error");
+                  if (errorEl) {
+                      const errMsg = errorEl.textContent || "";
+                      if (errMsg.match(/Session Key Error|Invalid session/i)) {
+                          throw new Error("INVALID_SESSION");
+                      } else if (errMsg.match(/not found/i)) {
+                          throw new Error("NOT_FOUND");
+                      } else {
+                          throw new Error("LOOKUP_ERROR");
+                      }
+                  }
+
+                  // Extract fields (simplified)
                   const primaryCall = xml.querySelector("Callsign > call")?.textContent?.toUpperCase() || callsign.toUpperCase();
 
-	          const nickname = xml.querySelector("nickname")?.textContent||"";
-	          const fname = xml.querySelector("fname")?.textContent||"";
-	          const lname = xml.querySelector("name")?.textContent||"";
-	          const addr2 = xml.querySelector("addr2")?.textContent||"";
-	          const state = xml.querySelector("state")?.textContent||"";
+                  const nickname = xml.querySelector("nickname")?.textContent||"";
+                  const fname = xml.querySelector("fname")?.textContent||"";
+                  const lname = xml.querySelector("name")?.textContent||"";
+                  const addr2 = xml.querySelector("addr2")?.textContent||"";
+                  const state = xml.querySelector("state")?.textContent||"";
                   const country = xml.querySelector("country")?.textContent||"";
-	          var fullname;
-	          if (nickname) {
-		      fullname = `${titleCase(fname)} \"${titleCase(nickname)}\" ${titleCase(lname)}`
-	          } else {
-		      fullname = `${titleCase(fname+" "+lname).trim() || "-"}`
-	          }
+                  var fullname;
+                  if (nickname) {
+                      fullname = `${titleCase(fname)} \"${titleCase(nickname)}\" ${titleCase(lname)}`
+                  } else {
+                      fullname = `${titleCase(fname+" "+lname).trim() || "-"}`
+                  }
                   var location;
                   if (country && country !== "United States") {
                       location = `${titleCase(addr2)}, ${state} ${country}`.trim()||"—";
@@ -664,275 +664,275 @@ layout: null
                       location = `${titleCase(addr2)}, ${state}`.trim()||"—";
                   }
 
-		  const data = {
-		      callsign: primaryCall,
-		      name: fullname,
-		      location: location,
+                  const data = {
+                      callsign: primaryCall,
+                      name: fullname,
+                      location: location,
                       xmlData: text,
-		      imgSrc: xml.querySelector("image")?.textContent || xml.querySelector("photo")?.textContent || ""
-		  };
+                      imgSrc: xml.querySelector("image")?.textContent || xml.querySelector("photo")?.textContent || ""
+                  };
 
-		  return data;
-	      } catch (err) {
-		  if (["NOT_FOUND", "INVALID_SESSION", "LOOKUP_ERROR", "NETWORK"].includes(err.message)) {
-		      throw err; // rethrow known types
-		  } else {
-		      throw new Error("NETWORK");
-		  }
-	      }
-	  }
+                  return data;
+              } catch (err) {
+                  if (["NOT_FOUND", "INVALID_SESSION", "LOOKUP_ERROR", "NETWORK"].includes(err.message)) {
+                      throw err; // rethrow known types
+                  } else {
+                      throw new Error("NETWORK");
+                  }
+              }
+          }
 
-	  refreshBtn.addEventListener("click", async () => {
-	      if (!sessionKey) return;
+          refreshBtn.addEventListener("click", async () => {
+              if (!sessionKey) return;
 
-	      showStatus("Refreshing data from QRZ...", "info");
+              showStatus("Refreshing data from QRZ...", "info");
 
-	      const rows = Array.from(tbody.children);
-	      for (const row of rows) {
-		  const callsign = row.cells[1].textContent.trim().toUpperCase();
-		  try {
-		      const data = await qrzLookupCall(callsign);
-		      xmlCache[callsign] = data;
+              const rows = Array.from(tbody.children);
+              for (const row of rows) {
+                  const callsign = row.cells[1].textContent.trim().toUpperCase();
+                  try {
+                      const data = await qrzLookupCall(callsign);
+                      xmlCache[callsign] = data;
 
-		      // Update name/location
-		      row.cells[2].textContent = data.name;
-		      row.cells[3].textContent = data.location;
+                      // Update name/location
+                      row.cells[2].textContent = data.name;
+                      row.cells[3].textContent = data.location;
 
-		      // Update image
-		      const imgCell = row.cells[0];
-		      imgCell.innerHTML = "";
-		      if(data.imgSrc){
-			  const img = document.createElement("img");
-			  img.src = data.imgSrc;
-			  img.style.height = "40px";
-			  img.style.width = "auto";
-			  img.style.verticalAlign = "middle";
-			  imgCell.appendChild(img);
-		      }
-		  } catch(err) {
-		      console.error(`Failed to refresh ${callsign}`, err);
-		  }
-	      }
+                      // Update image
+                      const imgCell = row.cells[0];
+                      imgCell.innerHTML = "";
+                      if(data.imgSrc){
+                          const img = document.createElement("img");
+                          img.src = data.imgSrc;
+                          img.style.height = "40px";
+                          img.style.width = "auto";
+                          img.style.verticalAlign = "middle";
+                          imgCell.appendChild(img);
+                      }
+                  } catch(err) {
+                      console.error(`Failed to refresh ${callsign}`, err);
+                  }
+              }
 
-	      saveData();
-	      showStatus("All data refreshed from QRZ.", "info");
-	  });
+              saveData();
+              showStatus("All data refreshed from QRZ.", "info");
+          });
 
-	// --- Main input key handling ---
-	callInput.addEventListener("keydown", async e => {
-	    if (e.key === "Escape"){
-	        hideLookupResult();
-	        callInput.value = "";
-	        showStatus("");
-         	return;
+        // --- Main input key handling ---
+        callInput.addEventListener("keydown", async e => {
+            if (e.key === "Escape"){
+                hideLookupResult();
+                callInput.value = "";
+                showStatus("");
+                return;
             }
-	    const val = callInput.value.trim().toUpperCase();
-	    if(!val) return;
+            const val = callInput.value.trim().toUpperCase();
+            if(!val) return;
 
-	    if(e.key === "Tab"){
-		e.preventDefault();
-		// Only perform lookup on Tab
-		await doLookup(val);
-	    } else if(e.key === "Enter"){
-		e.preventDefault();
-		await addCall(val, e.shiftKey ? 1 : 0);
-	    }
-	});
+            if(e.key === "Tab"){
+                e.preventDefault();
+                // Only perform lookup on Tab
+                await doLookup(val);
+            } else if(e.key === "Enter"){
+                e.preventDefault();
+                await addCall(val, e.shiftKey ? 1 : 0);
+            }
+        });
 
-	// Lookup Result click handler
-	lookupResultEl.addEventListener("click", async (e) => {
-	    const val = callInput.value.trim().toUpperCase();
-	    if (!val) return;
+        // Lookup Result click handler
+        lookupResultEl.addEventListener("click", async (e) => {
+            const val = callInput.value.trim().toUpperCase();
+            if (!val) return;
 
-	    await addCall(val, e.shiftKey ? 1 : 0);
-	});
+            await addCall(val, e.shiftKey ? 1 : 0);
+        });
 
-	// Add Button shift handling
-	addBtn.addEventListener("click", async (e) => {
-	    const val = callInput.value.trim().toUpperCase();
-	    if (!val) return;
+        // Add Button shift handling
+        addBtn.addEventListener("click", async (e) => {
+            const val = callInput.value.trim().toUpperCase();
+            if (!val) return;
 
-	    await addCall(val, e.shiftKey ? 1 : 0);
-	});
+            await addCall(val, e.shiftKey ? 1 : 0);
+        });
 
-	// --- Helper: Perform lookup and show result ---
-	async function doLookup(val) {
-	    let data = xmlCache[val];
-	    if (!data && sessionKey) {
-		try {
-		    data = await qrzLookupCall(val);
-		    xmlCache[val] = data;
-		} catch (err) {
-		    if (err.message === "NOT_FOUND") {
-			showStatus(`Call sign ${val} not found.`, "error");
-			hideLookupResult();
-			return;
-		    } else if (err.message === "INVALID_SESSION") {
-			alert("Your QRZ session has expired. Please log in again.");
-			logoutUser(); // your existing logout handler
-			return;
-		    } else {
-			showStatus("Lookup failed due to a network or server error.", "error");
-			console.error("Lookup error:", err);
-			return;
-		    }
-		}
-	    }
+        // --- Helper: Perform lookup and show result ---
+        async function doLookup(val) {
+            let data = xmlCache[val];
+            if (!data && sessionKey) {
+                try {
+                    data = await qrzLookupCall(val);
+                    xmlCache[val] = data;
+                } catch (err) {
+                    if (err.message === "NOT_FOUND") {
+                        showStatus(`Call sign ${val} not found.`, "error");
+                        hideLookupResult();
+                        return;
+                    } else if (err.message === "INVALID_SESSION") {
+                        alert("Your QRZ session has expired. Please log in again.");
+                        logoutUser(); // your existing logout handler
+                        return;
+                    } else {
+                        showStatus("Lookup failed due to a network or server error.", "error");
+                        console.error("Lookup error:", err);
+                        return;
+                    }
+                }
+            }
 
-	    const primaryCall = data?.callsign || val;
-	    if (isDuplicateCallsign(primaryCall)) {
-		showStatus(`Duplicate call sign: ${primaryCall}`, "error");
-		return;
-	    }
+            const primaryCall = data?.callsign || val;
+            if (isDuplicateCallsign(primaryCall)) {
+                showStatus(`Duplicate call sign: ${primaryCall}`, "error");
+                return;
+            }
 
-	    showStatus("");
-	    lookupResultEl.textContent = data
-		? `${primaryCall} - ${data.name} (${data.location})`
-		: val;
-	    showLookupResult();
-	}
+            showStatus("");
+            lookupResultEl.textContent = data
+                ? `${primaryCall} - ${data.name} (${data.location})`
+                : val;
+            showLookupResult();
+        }
 
-	// --- Helper: Add call to table, performing lookup if needed ---
-	async function addCall(val, trafficState = 0) {
-	    let data = xmlCache[val];
+        // --- Helper: Add call to table, performing lookup if needed ---
+        async function addCall(val, trafficState = 0) {
+            let data = xmlCache[val];
 
-	    // If no lookup yet, fetch in background
-	    if (!data && sessionKey) {
-		try {
-		    data = await qrzLookupCall(val);
-		    xmlCache[val] = data;
-		} catch (err) {
-		    if (err.message === "NOT_FOUND") {
-			showStatus(`Call sign ${val} not found.`, "error");
-			hideLookupResult();
-			return;
-		    } else if (err.message === "INVALID_SESSION") {
-			alert("Your QRZ session has expired. Please log in again.");
-			logoutUser(); // assumes your logout function
-			return;
-		    } else {
-			showStatus("Lookup failed due to a network or server error.", "error");
-			console.error("Lookup error:", err);
-			return;
-		    }
-		}
-	    }
+            // If no lookup yet, fetch in background
+            if (!data && sessionKey) {
+                try {
+                    data = await qrzLookupCall(val);
+                    xmlCache[val] = data;
+                } catch (err) {
+                    if (err.message === "NOT_FOUND") {
+                        showStatus(`Call sign ${val} not found.`, "error");
+                        hideLookupResult();
+                        return;
+                    } else if (err.message === "INVALID_SESSION") {
+                        alert("Your QRZ session has expired. Please log in again.");
+                        logoutUser(); // assumes your logout function
+                        return;
+                    } else {
+                        showStatus("Lookup failed due to a network or server error.", "error");
+                        console.error("Lookup error:", err);
+                        return;
+                    }
+                }
+            }
 
-	    const primaryCall = data?.callsign || val;
-	    if (isDuplicateCallsign(primaryCall)) {
-		showStatus(`Duplicate call sign: ${primaryCall}`, "error");
-		return;
-	    }
+            const primaryCall = data?.callsign || val;
+            if (isDuplicateCallsign(primaryCall)) {
+                showStatus(`Duplicate call sign: ${primaryCall}`, "error");
+                return;
+            }
 
-	    addRowToTable({
-		callsign: primaryCall,
-		name: data?.name || "—",
-		location: data?.location || "—",
-		imgSrc: data?.imgSrc || ""
-	    }, trafficState);
+            addRowToTable({
+                callsign: primaryCall,
+                name: data?.name || "—",
+                location: data?.location || "—",
+                imgSrc: data?.imgSrc || ""
+            }, trafficState);
 
-	    callInput.value = "";
-	    hideLookupResult();
-	    setDownloadTooltip();
-	    showStatus("");
-	}
+            callInput.value = "";
+            hideLookupResult();
+            setDownloadTooltip();
+            showStatus("");
+        }
 
-	lookupBtn.addEventListener("click", async () => {
-	    const val = callInput.value.trim().toUpperCase();
-	    if (!val) return;
+        lookupBtn.addEventListener("click", async () => {
+            const val = callInput.value.trim().toUpperCase();
+            if (!val) return;
 
-	    let data = xmlCache[val];
-	    if (!data && sessionKey) {
-		try {
-		    data = await qrzLookupCall(val);
-		    xmlCache[val] = data;
-		} catch (err) {
-		    if (err.message === "NOT_FOUND") {
-			showStatus(`Call sign ${val} not found.`, "error");
-			hideLookupResult();
-			return;
-		    } else if (err.message === "INVALID_SESSION") {
-			alert("Your QRZ session has expired. Please log in again.");
-			logoutUser(); // assumes your logout handler exists
-			return;
-		    } else {
-			showStatus("Lookup failed due to a network or server error.", "error");
-			console.error("Lookup error:", err);
-			return;
-		    }
-		}
-	    }
+            let data = xmlCache[val];
+            if (!data && sessionKey) {
+                try {
+                    data = await qrzLookupCall(val);
+                    xmlCache[val] = data;
+                } catch (err) {
+                    if (err.message === "NOT_FOUND") {
+                        showStatus(`Call sign ${val} not found.`, "error");
+                        hideLookupResult();
+                        return;
+                    } else if (err.message === "INVALID_SESSION") {
+                        alert("Your QRZ session has expired. Please log in again.");
+                        logoutUser(); // assumes your logout handler exists
+                        return;
+                    } else {
+                        showStatus("Lookup failed due to a network or server error.", "error");
+                        console.error("Lookup error:", err);
+                        return;
+                    }
+                }
+            }
 
-	    const primaryCall = data?.callsign || val;
-	    if (isDuplicateCallsign(primaryCall)) {
-		showStatus(`Duplicate call sign: ${primaryCall}`, "error");
-		return;
-	    } else {
-		showStatus("");
-	    }
+            const primaryCall = data?.callsign || val;
+            if (isDuplicateCallsign(primaryCall)) {
+                showStatus(`Duplicate call sign: ${primaryCall}`, "error");
+                return;
+            } else {
+                showStatus("");
+            }
 
-	    lookupResultEl.textContent = data
-		? `${primaryCall} - ${data.name} (${data.location})`
-		: val;
-	    showLookupResult();
-	});
+            lookupResultEl.textContent = data
+                ? `${primaryCall} - ${data.name} (${data.location})`
+                : val;
+            showLookupResult();
+        });
 
-	  // --- Table Sorting including Traffic and check-in time with direction indicators ---
-	  const headers = document.querySelectorAll("#callTable th[data-key]");
-	  headers.forEach(th => {
-	      th.style.cursor = "pointer";
-	      th.addEventListener("click", () => {
-		  const key = th.getAttribute("data-key");
-		  if (!key) return;
+          // --- Table Sorting including Traffic and check-in time with direction indicators ---
+          const headers = document.querySelectorAll("#callTable th[data-key]");
+          headers.forEach(th => {
+              th.style.cursor = "pointer";
+              th.addEventListener("click", () => {
+                  const key = th.getAttribute("data-key");
+                  if (!key) return;
 
-		  if (currentSort.key === key) currentSort.asc = !currentSort.asc;
-		  else currentSort = { key, asc: true };
+                  if (currentSort.key === key) currentSort.asc = !currentSort.asc;
+                  else currentSort = { key, asc: true };
 
-		  headers.forEach(h => {
-		      h.textContent = h.textContent.replace(/[\u25B2\u25BC]/g,'');
-		      if(h.getAttribute("data-key")===currentSort.key){
-			  h.textContent += currentSort.asc ? " ▲" : " ▼";
-		      }
-		  });
+                  headers.forEach(h => {
+                      h.textContent = h.textContent.replace(/[\u25B2\u25BC]/g,'');
+                      if(h.getAttribute("data-key")===currentSort.key){
+                          h.textContent += currentSort.asc ? " ▲" : " ▼";
+                      }
+                  });
 
-		  const rows = Array.from(tbody.querySelectorAll("tr"));
-		  rows.sort((a, b) => {
-		      let cmp = 0;
+                  const rows = Array.from(tbody.querySelectorAll("tr"));
+                  rows.sort((a, b) => {
+                      let cmp = 0;
 
-		      if (key === "callsign") cmp = a.cells[1].textContent.toUpperCase().localeCompare(b.cells[1].textContent.toUpperCase());
-		      else if (key === "name") cmp = a.cells[2].textContent.toUpperCase().localeCompare(b.cells[2].textContent.toUpperCase());
-		      else if (key === "location") cmp = a.cells[3].textContent.toUpperCase().localeCompare(b.cells[3].textContent.toUpperCase());
-		      else if (key === "time") cmp = a.cells[4].textContent.localeCompare(b.cells[4].textContent);
-		      else if (key === "traffic") {
-			  const trafficOrder = {"-":0,"*":1,"✔":2};
-			  const aTraffic = a.cells[5].getTrafficValue();
-			  const bTraffic = b.cells[5].getTrafficValue();
-			  cmp = trafficOrder[aTraffic] - trafficOrder[bTraffic];
-			  if(cmp === 0) cmp = a.cells[4].textContent.localeCompare(b.cells[4].textContent);
-		      }
+                      if (key === "callsign") cmp = a.cells[1].textContent.toUpperCase().localeCompare(b.cells[1].textContent.toUpperCase());
+                      else if (key === "name") cmp = a.cells[2].textContent.toUpperCase().localeCompare(b.cells[2].textContent.toUpperCase());
+                      else if (key === "location") cmp = a.cells[3].textContent.toUpperCase().localeCompare(b.cells[3].textContent.toUpperCase());
+                      else if (key === "time") cmp = a.cells[4].textContent.localeCompare(b.cells[4].textContent);
+                      else if (key === "traffic") {
+                          const trafficOrder = {"-":0,"*":1,"✔":2};
+                          const aTraffic = a.cells[5].getTrafficValue();
+                          const bTraffic = b.cells[5].getTrafficValue();
+                          cmp = trafficOrder[aTraffic] - trafficOrder[bTraffic];
+                          if(cmp === 0) cmp = a.cells[4].textContent.localeCompare(b.cells[4].textContent);
+                      }
 
-		      return currentSort.asc ? cmp : -cmp;
-		  });
+                      return currentSort.asc ? cmp : -cmp;
+                  });
 
-		  rows.forEach(r => tbody.appendChild(r));
-	      });
-	  });
+                  rows.forEach(r => tbody.appendChild(r));
+              });
+          });
 
-	  loadData();
-	  updateCheckedInCount();
-	  loadSession();
-	  setDownloadTooltip();
+          loadData();
+          updateCheckedInCount();
+          loadSession();
+          setDownloadTooltip();
       });
 
       function addLink(callsign) {
-	  return `<a href="https://www.qrz.com/db/${callsign}" target=_blank>${callsign}</a>`;
+          return `<a href="https://www.qrz.com/db/${callsign}" target=_blank>${callsign}</a>`;
       }
       const titleCase = (str) => {
-	  return str
-	      .toLowerCase()
-	      .split(' ')
-	      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-	      .join(' ');
+          return str
+              .toLowerCase()
+              .split(' ')
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ');
       };
       </script>
 
