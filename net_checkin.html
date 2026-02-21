@@ -606,6 +606,14 @@ layout: null
 
           function updateLoginDisplay(){ loginDropdown.textContent = sessionUser ? sessionUser.toUpperCase() : "QRZ Login"; }
 
+          function logoutUser(){
+              sessionKey = null;
+              sessionUser = null;
+              localStorage.removeItem("qrzSession");
+              updateLoginDisplay();
+              updateRefreshButton();
+          }
+
           // --- QRZ Login Handler ---
           document.getElementById("loginForm").addEventListener("submit", async (e) => {
               e.preventDefault();
