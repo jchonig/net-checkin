@@ -1,4 +1,7 @@
-all: test
+all: up
+
+up:
+	node serve.js
 
 build:
 	docker compose build
