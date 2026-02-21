@@ -21,6 +21,7 @@ layout: null
       #infoBanner { font-size: 0.9rem; margin-top: 0.5rem; }
       .traffic-cell { cursor: pointer; }
       .called-cell { cursor: pointer; }
+      .log-entry-row td { background-color: #e8f4f8; border-top: 2px solid #0d6efd; }
       #lookupResult.clickable:hover {
           background-color: #ffe9b3 !important;
           border-color: #e6b800;
@@ -120,6 +121,12 @@ layout: null
                 <li><i class="bi bi-check-circle-fill text-success"></i> (called).</li>
               </ul>
             </p>
+            <p><strong>Processing Traffic &amp; Check-Ins:</strong></p>
+            <ul>
+              <li><strong>Log button:</strong> Opens an input panel below the row to record what the station says. Click again to close (draft is saved). Click <strong>Done</strong> to mark the station as called and advance to the next pending station. Click <strong>Cancel</strong> to close without advancing.</li>
+              <li><strong>Process Next button:</strong> Opens the log panel for the next station with pending traffic (<i class="bi bi-exclamation-diamond-fill text-warning"></i>), then cycles through uncalled stations (<i class="bi bi-circle text-secondary"></i> in the Called column). Shows a message when all stations have been processed.</li>
+              <li>Pressing <strong>Done</strong> automatically sets Called to <i class="bi bi-check-circle-fill text-success"></i> and, if traffic was pending, sets Traffic to <i class="bi bi-check-circle text-success"></i>.</li>
+            </ul>
             <p>To file issues or contribute, visit <a href="https://github.com/jchonig/n2vlv" target="_blank">the GitHub repo</a></p>
           </div>
           <div class="modal-footer">
@@ -173,7 +180,12 @@ layout: null
 
       <div class="card mt-4 shadow-sm">
         <div class="card-body">
-          <h5 class="card-title" id="checkedInTitle">Checked-In Operators</h5>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="card-title mb-0" id="checkedInTitle">Checked-In Operators</h5>
+            <button id="processNextBtn" type="button" class="btn btn-primary btn-sm">
+              <i class="bi bi-megaphone"></i> Process Next
+            </button>
+          </div>
           <table class="table table-striped" id="callTable">
             <thead>
               <tr>
@@ -254,8 +266,12 @@ layout: null
           }
           setDefaultNetTime();
 
+          function getDataRows() {
+              return Array.from(tbody.children).filter(r => !r.classList.contains("log-entry-row"));
+          }
+
           function updateCheckedInCount() {
-              const rows = Array.from(tbody.children);
+              const rows = getDataRows();
               const trafficCount = rows.filter(r => r.cells[5].getTrafficValue() === "*").length;
               const totalCount = rows.length;
               const titleEl = document.getElementById("checkedInTitle");
@@ -306,7 +322,7 @@ layout: null
               let missing = [];
               if(!netNameInput.value.trim()) missing.push("Net Name");
               if(!dtInput.value.trim()) missing.push("Net Date/Time");
-              if(tbody.children.length===0) missing.push("At least one check-in");
+              if(getDataRows().length===0) missing.push("At least one check-in");
 
               const tooltipText = missing.length ? "Fill in: " + missing.join(", ") : "Download CSV";
               downloadBtn.disabled = missing.length > 0;
@@ -379,13 +395,14 @@ layout: null
 
           function saveData(){
               const data={
-                  calls:Array.from(tbody.children).map(r=>({
+                  calls:getDataRows().map(r=>({
                       callsign:r.cells[1].textContent,
                       name:r.cells[2].textContent,
                       location:r.cells[3].textContent,
                       time:r.cells[4].textContent,
                       traffic:r.cells[5].getTrafficValue(),
                       called:r.cells[6].getCalledValue(),
+                      log:r.dataset.log || "",
                       imgSrc:r.cells[0].querySelector("img")?.src || ""
                   })),
                   netName:netNameInput.value,
@@ -445,7 +462,7 @@ layout: null
                           const primaryCall = data?.callsign || typedVal; // use primary call
 
                           // Duplicate check against primary callsign
-                          if (Array.from(tbody.children).some(r => r !== row && r.cells[1].textContent.toUpperCase() === primaryCall)) {
+                          if (getDataRows().some(r => r !== row && r.cells[1].textContent.toUpperCase() === primaryCall)) {
                               let errEl = row.cells[1].querySelector(".inline-error");
                               if (!errEl) {
                                   errEl = document.createElement("div");
@@ -526,7 +543,13 @@ layout: null
               delBtn.textContent="Delete";
               delBtn.addEventListener("click", ()=>{ row.remove(); saveData(); setDownloadTooltip(); });
 
+              const logBtn = document.createElement("button");
+              logBtn.className="btn btn-sm btn-secondary me-1";
+              logBtn.textContent="Log";
+              logBtn.addEventListener("click", () => openLogEntry(row));
+
               td.appendChild(editBtn);
+              td.appendChild(logBtn);
               td.appendChild(infoBtn);
               td.appendChild(delBtn);
               return td;
@@ -534,13 +557,13 @@ layout: null
 
           function isDuplicateCallsign(val) {
               const upperVal = val.toUpperCase();
-              return Array.from(tbody.children).some(r => r.cells[1].textContent.toUpperCase() === upperVal);
+              return getDataRows().some(r => r.cells[1].textContent.toUpperCase() === upperVal);
           }
 
           function addRowToTable(data, trafficState=0){
               const primaryCall = data.callsign.toUpperCase();
 
-              if (Array.from(tbody.children).some(r => r.cells[1].textContent.toUpperCase() === primaryCall)) {
+              if (getDataRows().some(r => r.cells[1].textContent.toUpperCase() === primaryCall)) {
                   showStatus(`Duplicate call sign: ${primaryCall}`, "error");
                   return;
               }
@@ -570,6 +593,7 @@ layout: null
               const calledCell = createCalledCell();
               row.appendChild(calledCell);
 
+              row.dataset.log = "";
               row.appendChild(createActionButtons(row, primaryCall));
 
               tbody.appendChild(row);
@@ -598,6 +622,7 @@ layout: null
                       const calledCell = createCalledCell();
                       calledCell.setCalledValue(c.called || "-");
                       row.appendChild(calledCell);
+                      row.dataset.log = c.log || "";
                       row.appendChild(createActionButtons(row,c.callsign));
                       tbody.appendChild(row);
                   });
@@ -738,7 +763,7 @@ layout: null
 
               showStatus("Refreshing data from QRZ...", "info");
 
-              const rows = Array.from(tbody.children);
+              const rows = getDataRows();
               for (const row of rows) {
                   const callsign = row.cells[1].textContent.trim().toUpperCase();
                   try {
@@ -894,6 +919,102 @@ layout: null
             await doLookup(val);
         });
 
+          // --- Traffic / log processing ---
+
+          function findNextPending() {
+              const rows = getDataRows();
+              return rows.find(r => r.cells[5].getTrafficValue() === "*") ||
+                     rows.find(r => r.cells[6].getCalledValue() === "-") ||
+                     null;
+          }
+
+          function openLogEntry(row) {
+              // Toggle closed if already open for this row
+              const existing = row.nextElementSibling;
+              if (existing && existing.classList.contains("log-entry-row")) {
+                  row.dataset.log = existing.querySelector("textarea").value.trim();
+                  existing.remove();
+                  saveData();
+                  return;
+              }
+
+              // Close any other open log panels first
+              tbody.querySelectorAll(".log-entry-row").forEach(r => r.remove());
+
+              const callsign = row.cells[1].textContent;
+              const name = row.cells[2].textContent;
+
+              const logRow = document.createElement("tr");
+              logRow.className = "log-entry-row";
+
+              const td = document.createElement("td");
+              td.colSpan = 8;
+              td.className = "p-2";
+
+              const header = document.createElement("div");
+              header.className = "fw-semibold mb-1";
+              header.textContent = `${callsign} — ${name}`;
+
+              const textarea = document.createElement("textarea");
+              textarea.className = "form-control form-control-sm mb-2";
+              textarea.rows = 2;
+              textarea.placeholder = "Enter traffic or notes…";
+              textarea.value = row.dataset.log || "";
+
+              const btnGroup = document.createElement("div");
+              btnGroup.className = "d-flex gap-2";
+
+              const doneBtn = document.createElement("button");
+              doneBtn.type = "button";
+              doneBtn.className = "btn btn-success btn-sm";
+              doneBtn.textContent = "Done";
+              doneBtn.addEventListener("click", () => {
+                  row.dataset.log = textarea.value.trim();
+                  if (row.cells[5].getTrafficValue() === "*") row.cells[5].setTrafficValue("✔");
+                  row.cells[6].setCalledValue("✔");
+                  logRow.remove();
+                  saveData();
+                  const next = findNextPending();
+                  if (next) {
+                      openLogEntry(next);
+                      next.scrollIntoView({ behavior: "smooth", block: "center" });
+                  } else {
+                      showStatus("All stations have been processed.", "info");
+                  }
+              });
+
+              const cancelBtn = document.createElement("button");
+              cancelBtn.type = "button";
+              cancelBtn.className = "btn btn-secondary btn-sm";
+              cancelBtn.textContent = "Cancel";
+              cancelBtn.addEventListener("click", () => {
+                  row.dataset.log = textarea.value.trim();
+                  logRow.remove();
+                  saveData();
+              });
+
+              btnGroup.appendChild(doneBtn);
+              btnGroup.appendChild(cancelBtn);
+
+              td.appendChild(header);
+              td.appendChild(textarea);
+              td.appendChild(btnGroup);
+              logRow.appendChild(td);
+              row.insertAdjacentElement("afterend", logRow);
+              textarea.focus();
+          }
+
+          document.getElementById("processNextBtn").addEventListener("click", () => {
+              tbody.querySelectorAll(".log-entry-row").forEach(r => r.remove());
+              const next = findNextPending();
+              if (next) {
+                  openLogEntry(next);
+                  next.scrollIntoView({ behavior: "smooth", block: "center" });
+              } else {
+                  showStatus("All stations have been processed.", "info");
+              }
+          });
+
           // --- Table Sorting including Traffic and check-in time with direction indicators ---
           const headers = document.querySelectorAll("#callTable th[data-key]");
           headers.forEach(th => {
@@ -912,7 +1033,8 @@ layout: null
                       }
                   });
 
-                  const rows = Array.from(tbody.querySelectorAll("tr"));
+                  tbody.querySelectorAll(".log-entry-row").forEach(r => r.remove());
+                  const rows = getDataRows();
                   rows.sort((a, b) => {
                       let cmp = 0;
 
