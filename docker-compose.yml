@@ -1,0 +1,6 @@
+services:
+  tests:
+    build: .
+    volumes:
+      # Mount report directory out so it's accessible on the host after the run
+      - ./playwright-report:/app/playwright-report
