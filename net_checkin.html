@@ -20,6 +20,7 @@ layout: null
       th { cursor: pointer; }
       #infoBanner { font-size: 0.9rem; margin-top: 0.5rem; }
       .traffic-cell { cursor: pointer; }
+      .called-cell { cursor: pointer; }
       #lookupResult.clickable:hover {
           background-color: #ffe9b3 !important;
           border-color: #e6b800;
@@ -113,6 +114,12 @@ layout: null
                 <li><i class="bi bi-check-circle text-success"></i> (traffic covered).</li>
               </ul>
             </p>
+            <p><strong>Called</strong> column values (click the icon to change values):
+              <ul>
+                <li><i class="bi bi-circle text-secondary"></i> (not yet called)</li>
+                <li><i class="bi bi-check-circle-fill text-success"></i> (called).</li>
+              </ul>
+            </p>
             <p>To file issues or contribute, visit <a href="https://github.com/jchonig/n2vlv" target="_blank">the GitHub repo</a></p>
           </div>
           <div class="modal-footer">
@@ -175,6 +182,7 @@ layout: null
                 <th data-key="location">Location</th>
                 <th data-key="time">Check-In Time</th>
                 <th data-key="traffic" class="text-center">Traffic</th>
+                <th data-key="called" class="text-center">Called</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -321,6 +329,31 @@ layout: null
               { icon: "bi-check-circle text-success", value: "✔" }
           ];
 
+          const calledStates = [
+              { icon: "bi-circle text-secondary", value: "-" },
+              { icon: "bi-check-circle-fill text-success", value: "✔" }
+          ];
+
+          function createCalledCell(initialState = 0) {
+              const td = document.createElement("td");
+              td.className = "text-center called-cell";
+              let stateIndex = initialState;
+              const i = document.createElement("i");
+              i.className = calledStates[stateIndex].icon;
+              td.appendChild(i);
+              td.addEventListener("click", () => {
+                  stateIndex = (stateIndex + 1) % calledStates.length;
+                  i.className = calledStates[stateIndex].icon;
+                  saveData();
+              });
+              td.getCalledValue = () => calledStates[stateIndex].value;
+              td.setCalledValue = (val) => {
+                  const idx = calledStates.findIndex(s => s.value === val);
+                  if(idx >= 0){ stateIndex = idx; i.className = calledStates[stateIndex].icon; }
+              };
+              return td;
+          }
+
           function createTrafficCell(initialState = 0) {
               const td = document.createElement("td");
               td.className = "text-center traffic-cell";
@@ -349,6 +382,7 @@ layout: null
                       location:r.cells[3].textContent,
                       time:r.cells[4].textContent,
                       traffic:r.cells[5].getTrafficValue(),
+                      called:r.cells[6].getCalledValue(),
                       imgSrc:r.cells[0].querySelector("img")?.src || ""
                   })),
                   netName:netNameInput.value,
@@ -530,6 +564,9 @@ layout: null
               const trafficCell = createTrafficCell(trafficState);
               row.appendChild(trafficCell);
 
+              const calledCell = createCalledCell();
+              row.appendChild(calledCell);
+
               row.appendChild(createActionButtons(row, primaryCall));
 
               tbody.appendChild(row);
@@ -555,6 +592,9 @@ layout: null
                       const trafficCell = createTrafficCell();
                       trafficCell.setTrafficValue(c.traffic || "-");
                       row.appendChild(trafficCell);
+                      const calledCell = createCalledCell();
+                      calledCell.setCalledValue(c.called || "-");
+                      row.appendChild(calledCell);
                       row.appendChild(createActionButtons(row,c.callsign));
                       tbody.appendChild(row);
                   });
@@ -908,6 +948,12 @@ layout: null
                           const aTraffic = a.cells[5].getTrafficValue();
                           const bTraffic = b.cells[5].getTrafficValue();
                           cmp = trafficOrder[aTraffic] - trafficOrder[bTraffic];
+                          if(cmp === 0) cmp = a.cells[4].textContent.localeCompare(b.cells[4].textContent);
+                      } else if (key === "called") {
+                          const calledOrder = {"-":0,"✔":1};
+                          const aCalled = a.cells[6].getCalledValue();
+                          const bCalled = b.cells[6].getCalledValue();
+                          cmp = calledOrder[aCalled] - calledOrder[bCalled];
                           if(cmp === 0) cmp = a.cells[4].textContent.localeCompare(b.cells[4].textContent);
                       }
 
