@@ -54,7 +54,7 @@ layout: null
               <i class="bi bi-download"></i>Download CSV
             </button>
           </span>
-          <button id="refreshButton" type="button" class="btn btn-outline-primary btn-sm me-1" disabled>
+          <button id="refreshButton" type="button" class="btn btn-outline-light btn-sm me-1" disabled>
             <i class="bi bi-arrow-clockwise"></i> Refresh QRZ
           </button>
         </form>
@@ -195,7 +195,7 @@ layout: null
     <script>
       document.addEventListener("DOMContentLoaded", function() {
           const hamBands=[[1.8,2],[3.5,4],[7,7.3],[14,14.35],[21,21.45],[28,29.7],[50,54],[144,148],[222,225],[420,450]];
-          let sessionKey = null, sessionUser=null, tempLookupData=null, currentSort={key:null,asc:true}, xmlCache={};
+          let sessionKey = null, sessionUser=null, currentSort={key:null,asc:true}, xmlCache={};
 
           const refreshBtn = document.getElementById("refreshButton");
 
@@ -407,6 +407,7 @@ layout: null
               editBtn.textContent="Edit";
               editBtn.addEventListener("click", ()=>{
                   const cell = row.cells[1];
+                  const oldHTML = cell.innerHTML;
                   const oldVal = cell.textContent;
                   const input = document.createElement("input");
                   input.type = "text";
@@ -426,7 +427,6 @@ layout: null
                                   row.cells[2].textContent = data.name;
                                   row.cells[3].textContent = data.location;
                                   xmlCache[data.callsign] = data;  // store by primary callsign
-                                  tempLookupData = data;
                               }catch(err){ alert("Lookup failed"); }
                           }
                       } else if(e.key==="Enter" || (e.shiftKey && e.key==="Enter")){
@@ -484,7 +484,7 @@ layout: null
                           if(e.shiftKey) row.cells[5].setTrafficValue("*");
                           saveData();
                       } else if(e.key==="Escape"){
-                          cell.textContent = oldVal;
+                          cell.innerHTML = oldHTML;
                       }
                   });
               });
@@ -702,13 +702,13 @@ layout: null
                   const addr2 = xml.querySelector("addr2")?.textContent||"";
                   const state = xml.querySelector("state")?.textContent||"";
                   const country = xml.querySelector("country")?.textContent||"";
-                  var fullname;
+                  let fullname;
                   if (nickname) {
                       fullname = `${titleCase(fname)} \"${titleCase(nickname)}\" ${titleCase(lname)}`
                   } else {
                       fullname = `${titleCase(fname+" "+lname).trim() || "-"}`
                   }
-                  var location;
+                  let location;
                   if (country && country !== "United States") {
                       location = `${titleCase(addr2)}, ${state} ${country}`.trim()||"—";
                   } else {
@@ -891,41 +891,7 @@ layout: null
         lookupBtn.addEventListener("click", async () => {
             const val = callInput.value.trim().toUpperCase();
             if (!val) return;
-
-            let data = xmlCache[val];
-            if (!data && sessionKey) {
-                try {
-                    data = await qrzLookupCall(val);
-                    xmlCache[val] = data;
-                } catch (err) {
-                    if (err.message === "NOT_FOUND") {
-                        showStatus(`Call sign ${val} not found.`, "error");
-                        hideLookupResult();
-                        return;
-                    } else if (err.message === "INVALID_SESSION") {
-                        alert("Your QRZ session has expired. Please log in again.");
-                        logoutUser(); // assumes your logout handler exists
-                        return;
-                    } else {
-                        showStatus("Lookup failed due to a network or server error.", "error");
-                        console.error("Lookup error:", err);
-                        return;
-                    }
-                }
-            }
-
-            const primaryCall = data?.callsign || val;
-            if (isDuplicateCallsign(primaryCall)) {
-                showStatus(`Duplicate call sign: ${primaryCall}`, "error");
-                return;
-            } else {
-                showStatus("");
-            }
-
-            lookupResultEl.textContent = data
-                ? `${primaryCall} - ${data.name} (${data.location})`
-                : val;
-            showLookupResult();
+            await doLookup(val);
         });
 
           // --- Table Sorting including Traffic and check-in time with direction indicators ---
