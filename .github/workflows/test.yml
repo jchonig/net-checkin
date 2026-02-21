@@ -30,3 +30,9 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+
+      - name: Trigger n2vlv rebuild
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.N2VLV_DISPATCH_TOKEN }}
+        run: gh api repos/jchonig/n2vlv/dispatches -f event_type=net-checkin-updated
