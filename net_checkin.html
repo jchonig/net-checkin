@@ -31,6 +31,14 @@ layout: null
           display: inline-flex;
           align-items: center;
       }
+      .navbar form .form-control-sm,
+      .navbar form .form-select-sm,
+      .navbar form .btn-sm {
+          height: 31px;
+          padding-top: 0.25rem;
+          padding-bottom: 0.25rem;
+          line-height: 1.5;
+      }
     </style>
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
@@ -39,24 +47,39 @@ layout: null
         <span class="navbar-brand">{{ page.title }}</span>
 
         <!-- Net Info Form -->
-        <form class="d-flex ms-3">
+        <form class="d-flex align-items-center ms-3" style="flex-wrap:nowrap">
           <input type="text" id="netName" class="form-control form-control-sm me-1" placeholder="Net Name">
           <input type="datetime-local" id="netDateTime" class="form-control form-control-sm me-1">
           <input type="text" id="frequencyInput" class="form-control form-control-sm me-1" placeholder="Frequency (MHz)">
-          <button id="resetButton" type="button" class="btn
-                                                        btn-secondary
-                                                        btn-sm me-1">
-            <i class="bi bi-trash"></i>Clear Input
-          </button>
+          <select id="modeInput" class="form-select form-select-sm me-1" style="width:auto">
+            <option value="">Mode</option>
+            <option>FM</option>
+            <option>USB</option>
+            <option>LSB</option>
+            <option>AM</option>
+            <option>CW</option>
+            <option>C4FM</option>
+            <option>D-Star</option>
+            <option>DMR</option>
+            <option>P25</option>
+            <option>NXDN</option>
+          </select>
           <span id="downloadWrapper" data-bs-toggle="tooltip" data-bs-placement="top" title="">
-            <button id="downloadCSV" type="button" class="btn
-                                                          btn-success
-                                                          btn-sm">
-              <i class="bi bi-download"></i>Download CSV
-            </button>
+            <div class="btn-group">
+              <button id="downloadDropdown" type="button" class="btn btn-success btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-download"></i> Download
+              </button>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#" id="downloadADIF"><i class="bi bi-file-earmark-text"></i> ADIF</a></li>
+                <li><a class="dropdown-item" href="#" id="printLog"><i class="bi bi-printer"></i> Print / Save as PDF</a></li>
+              </ul>
+            </div>
           </span>
-          <button id="refreshButton" type="button" class="btn btn-outline-light btn-sm me-1" disabled>
-            <i class="bi bi-arrow-clockwise"></i> Refresh QRZ
+          <button id="refreshButton" type="button" class="btn btn-outline-light btn-sm me-1" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Refresh QRZ" disabled>
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
+          <button id="resetButton" type="button" class="btn btn-secondary btn-sm" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Reset Form">
+            <i class="bi bi-trash"></i>
           </button>
         </form>
 
@@ -126,6 +149,11 @@ layout: null
               <li><strong>Log button:</strong> Opens an input panel below the row to record what the station says. Click again to close (draft is saved). Click <strong>Done</strong> to mark the station as called and advance to the next pending station. Click <strong>Cancel</strong> to close without advancing.</li>
               <li><strong>Process Next button:</strong> Opens the log panel for the next station with pending traffic (<i class="bi bi-exclamation-diamond-fill text-warning"></i>), then cycles through uncalled stations (<i class="bi bi-circle text-secondary"></i> in the Called column). Shows a message when all stations have been processed.</li>
               <li>Pressing <strong>Done</strong> automatically sets Called to <i class="bi bi-check-circle-fill text-success"></i> and, if traffic was pending, sets Traffic to <i class="bi bi-check-circle text-success"></i>.</li>
+            </ul>
+            <p><strong>Download <i class="bi bi-download"></i>:</strong> Available once a Net Name, Date/Time, and at least one check-in have been entered.</p>
+            <ul>
+              <li><strong><i class="bi bi-file-earmark-text"></i> ADIF:</strong> Exports the check-in list as an ADIF 3.1.4 file (<code>.adi</code>) suitable for importing into logging software. Each check-in becomes a QSO record with callsign, date, time, frequency, band, mode, name, location, and any logged notes.</li>
+              <li><strong><i class="bi bi-printer"></i> Print / Save as PDF:</strong> Opens a formatted net log in a new window and triggers the browser print dialog. Use your browser's "Save as PDF" destination to save a copy.</li>
             </ul>
             <p>To file issues or contribute, visit <a href="https://github.com/jchonig/n2vlv" target="_blank">the GitHub repo</a></p>
           </div>
@@ -234,7 +262,8 @@ layout: null
           const addBtn = document.getElementById("addButton");
           const lookupBtn = document.getElementById("lookupButton");
           const freqInput = document.getElementById("frequencyInput");
-          const downloadBtn = document.getElementById("downloadCSV");
+          const modeInput = document.getElementById("modeInput");
+          const downloadBtn = document.getElementById("downloadDropdown");
           const downloadWrapper = document.getElementById("downloadWrapper");
           const netNameInput = document.getElementById("netName");
           const loginDropdown = document.getElementById("loginDropdown");
@@ -247,6 +276,8 @@ layout: null
           function hideLookupResult() { lookupResultEl.classList.add("d-none"); }
 
           let tooltip = new bootstrap.Tooltip(downloadWrapper);
+          new bootstrap.Tooltip(document.getElementById("resetButton"));
+          new bootstrap.Tooltip(document.getElementById("refreshButton"));
 
           function setDefaultNetTime() {
               const now = new Date();
@@ -296,6 +327,9 @@ layout: null
               // Clear frequency input
               freqInput.value = "";
 
+              // Clear mode
+              modeInput.value = "";
+
               // Reset tooltip
               setDownloadTooltip();
 
@@ -324,7 +358,7 @@ layout: null
               if(!dtInput.value.trim()) missing.push("Net Date/Time");
               if(getDataRows().length===0) missing.push("At least one check-in");
 
-              const tooltipText = missing.length ? "Fill in: " + missing.join(", ") : "Download CSV";
+              const tooltipText = missing.length ? "Fill in: " + missing.join(", ") : "Download";
               downloadBtn.disabled = missing.length > 0;
 
               tooltip.dispose();
@@ -336,7 +370,15 @@ layout: null
               const freq=freqInput.value.trim();
               if(freq && !isValidFrequency(freq)){
                   showStatus("Invalid frequency! Must be a valid ham band in MHz.","error");
-              } else showStatus("", "info");
+              } else {
+                  showStatus("", "info");
+                  if(freq && !modeInput.value){
+                      const f = parseFloat(freq);
+                      if(f >= 50) modeInput.value = "FM";
+                      else if(f >= 14) modeInput.value = "USB";
+                      else if(f >= 1.8) modeInput.value = "LSB";
+                  }
+              }
           });
 
           netNameInput.addEventListener("input", setDownloadTooltip);
@@ -407,7 +449,8 @@ layout: null
                   })),
                   netName:netNameInput.value,
                   netDateTime:dtInput.value,
-                  freq:freqInput.value
+                  freq:freqInput.value,
+                  mode:modeInput.value
               };
               localStorage.setItem("netCheckData",JSON.stringify(data));
               if(sessionKey && sessionUser){
@@ -630,6 +673,7 @@ layout: null
               if(saved.netName) netNameInput.value=saved.netName;
               if(saved.netDateTime) dtInput.value=saved.netDateTime;
               if(saved.freq) freqInput.value=saved.freq;
+              if(saved.mode) modeInput.value=saved.mode;
           }
 
           function updateLoginDisplay(){ loginDropdown.textContent = sessionUser ? sessionUser.toUpperCase() : "QRZ Login"; }
@@ -1062,6 +1106,150 @@ layout: null
                   rows.forEach(r => tbody.appendChild(r));
               });
           });
+
+          // --- Download helpers ---
+
+          function triggerDownload(blob, filename) {
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = filename;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+          }
+
+          function safeFilename(netName, dateStr) {
+              const name = netName.replace(/[^a-zA-Z0-9]/g, "");
+              const date = dateStr ? dateStr.substring(0, 10) : "";
+              return `${name}_${date}`;
+          }
+
+          function autoDetectMode(freqStr) {
+              const f = parseFloat(freqStr);
+              if (isNaN(f)) return "";
+              if (f >= 50) return "FM";
+              if (f >= 14) return "USB";
+              if (f >= 1.8) return "LSB";
+              return "";
+          }
+
+          function downloadADIF() {
+              const bandNames = ["160m","80m","40m","20m","15m","10m","6m","2m","1.25m","70cm"];
+              const freqVal = freqInput.value.trim();
+              const effectiveMode = modeInput.value || autoDetectMode(freqVal);
+
+              function getBand(freqStr) {
+                  const f = parseFloat(freqStr);
+                  if (isNaN(f)) return "";
+                  const idx = hamBands.findIndex(b => f >= b[0] && f <= b[1]);
+                  return idx >= 0 ? bandNames[idx] : "";
+              }
+
+              function adifField(tag, value) {
+                  if (!value) return "";
+                  return `<${tag}:${value.length}>${value}`;
+              }
+
+              const dtVal = dtInput.value; // YYYY-MM-DDTHH:mm
+              const qsoDate = dtVal ? dtVal.substring(0,10).replace(/-/g,"") : "";
+              const band = getBand(freqVal);
+
+              let adif = `ADIF Export from N2VLV Net Check-Ins\n<PROGRAMID:18>N2VLV Net Check-In\n<ADIF_VER:5>3.1.4\n<EOH>\n\n`;
+
+              getDataRows().forEach(row => {
+                  const call = row.cells[1].textContent.trim();
+                  const name = row.cells[2].textContent.trim();
+                  const location = row.cells[3].textContent.trim();
+                  const timeOn = row.cells[4].textContent.trim().replace(/:/g,"").substring(0,6);
+                  const logText = row.dataset.log || "";
+
+                  let record = "";
+                  record += adifField("CALL", call);
+                  record += adifField("QSO_DATE", qsoDate);
+                  record += adifField("TIME_ON", timeOn);
+                  record += adifField("FREQ", freqVal);
+                  record += adifField("BAND", band);
+                  record += adifField("MODE", effectiveMode);
+                  record += adifField("NAME", name);
+                  record += adifField("QTH", location);
+                  if (logText) record += adifField("COMMENT", logText);
+                  record += "<EOR>\n";
+                  adif += record + "\n";
+              });
+
+              const blob = new Blob([adif], { type: "text/plain" });
+              const filename = safeFilename(netNameInput.value, dtInput.value) + ".adi";
+              triggerDownload(blob, filename);
+          }
+
+          function printLog() {
+              const netName = netNameInput.value.trim() || "Net Log";
+              const dtVal = dtInput.value;
+              const freqVal = freqInput.value.trim();
+              const effectiveMode = modeInput.value || autoDetectMode(freqVal);
+
+              let rowsHtml = "";
+              getDataRows().forEach((row, idx) => {
+                  const call = row.cells[1].textContent.trim();
+                  const name = row.cells[2].textContent.trim();
+                  const location = row.cells[3].textContent.trim();
+                  const timeOn = row.cells[4].textContent.trim();
+                  const trafficVal = row.cells[5].getTrafficValue();
+                  const calledVal = row.cells[6].getCalledValue();
+                  const logText = row.dataset.log || "";
+
+                  const trafficDisplay = trafficVal === "✔" ? "✓" : trafficVal === "*" ? "Pending" : "";
+                  const calledDisplay = calledVal === "✔" ? "✓" : "";
+                  const bg = idx % 2 === 0 ? "#ffffff" : "#f2f2f2";
+
+                  rowsHtml += `<tr style="background:${bg}">
+                      <td>${idx + 1}</td>
+                      <td><strong>${call}</strong></td>
+                      <td>${name}</td>
+                      <td>${location}</td>
+                      <td>${timeOn}</td>
+                      <td style="text-align:center">${trafficDisplay}</td>
+                      <td style="text-align:center">${calledDisplay}</td>
+                      <td>${logText}</td>
+                  </tr>`;
+              });
+
+              const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+              <title>${netName}</title>
+              <style>
+                  body { font-family: Arial, sans-serif; margin: 0.75in; font-size: 11pt; }
+                  h1 { font-size: 16pt; margin-bottom: 0.2em; }
+                  .header-box { border: 1px solid #999; padding: 0.5em 1em; margin-bottom: 1em; display: inline-block; }
+                  table { width: 100%; border-collapse: collapse; }
+                  th { background: #003366; color: white; padding: 4px 8px; text-align: left; }
+                  td { padding: 3px 8px; border-bottom: 1px solid #ddd; }
+                  @media print { body { margin: 0.75in; } }
+              </style></head><body>
+              <div class="header-box">
+                  <h1>${netName}</h1>
+                  <div><strong>Date/Time:</strong> ${dtVal || "—"}</div>
+                  <div><strong>Frequency:</strong> ${freqVal || "—"} MHz</div>
+                  <div><strong>Mode:</strong> ${effectiveMode || "—"}</div>
+              </div>
+              <table>
+                  <thead><tr>
+                      <th>#</th><th>Call Sign</th><th>Name</th><th>Location</th>
+                      <th>Check-In</th><th>Traffic</th><th>Called</th><th>Notes</th>
+                  </tr></thead>
+                  <tbody>${rowsHtml}</tbody>
+              </table>
+              </body></html>`;
+
+              const w = window.open("", "_blank");
+              w.document.write(html);
+              w.document.close();
+              w.print();
+          }
+
+          document.getElementById("downloadADIF").addEventListener("click", e => { e.preventDefault(); downloadADIF(); });
+          document.getElementById("printLog").addEventListener("click", e => { e.preventDefault(); printLog(); });
 
           loadData();
           updateCheckedInCount();
