@@ -323,6 +323,9 @@ layout: null
               } else showStatus("", "info");
           });
 
+          netNameInput.addEventListener("input", setDownloadTooltip);
+          dtInput.addEventListener("input", setDownloadTooltip);
+
           const trafficStates = [
               { icon: "bi-circle text-secondary", value: "-" },
               { icon: "bi-exclamation-diamond-fill text-warning", value: "*" },
